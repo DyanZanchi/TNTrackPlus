@@ -150,10 +150,13 @@ export function EpisodeForm({
             name="duration_hms"
             defaultValue="00:05:00"
             required
-            inputMode="numeric"
-            pattern="^([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)$"
+            inputMode="text"
+            maxLength={8}
             className="min-h-11 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 font-mono"
             placeholder="00:05:00"
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
           />
           <span className="text-xs text-[color:var(--muted)]">
             Enter duration as `hh:mm:ss`, up to `23:59:59`.
