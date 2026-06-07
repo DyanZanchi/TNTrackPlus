@@ -1,7 +1,8 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { DashboardFilters, EpisodeRecord } from "@/lib/types/episodes";
+import type { DashboardFilters, EpisodeRecord, FaceAreaOption } from "@/lib/types/episodes";
 import { buildFilterQuery } from "@/lib/analytics/episodes";
 import { isEpisodeFaceArea } from "@/lib/constants/episode-options";
+import type { FaceLocationKey, FaceMapPoint } from "@/lib/face-map/types";
 
 type EpisodeRelationRow = {
   face_area_options?: { normalized_label?: string | null } | null;
@@ -9,10 +10,20 @@ type EpisodeRelationRow = {
   medication_options?: { label?: string | null } | null;
 };
 
+type EpisodeFacePointRow = {
+  x: number;
+  y: number;
+  division: FaceAreaOption;
+  location_key: FaceLocationKey;
+  location_label: string;
+};
+
 type EpisodeQueryRow = {
   id: string;
   user_id: string;
   pain_type: EpisodeRecord["pain_type"];
+  pain_pattern: EpisodeRecord["pain_pattern"];
+  pulse_duration_seconds: number | null;
   face_area: string;
   severity: number;
   duration_seconds: number;
@@ -20,25 +31,41 @@ type EpisodeQueryRow = {
   notes: string | null;
   created_at: string;
   episode_face_areas?: EpisodeRelationRow[] | null;
+  episode_face_points?: EpisodeFacePointRow[] | null;
   episode_triggers?: EpisodeRelationRow[] | null;
   episode_medications?: EpisodeRelationRow[] | null;
 };
 
 function mapEpisodeRow(row: EpisodeQueryRow): EpisodeRecord {
+  const facePoints: FaceMapPoint[] = (row.episode_face_points ?? []).map((point) => ({
+    x: Number(point.x),
+    y: Number(point.y),
+    division: point.division,
+    location: point.location_key,
+    label: point.location_label,
+  }));
+
   const faceAreas = (row.episode_face_areas ?? [])
     .map((item) => item.face_area_options?.normalized_label)
     .filter((label): label is string => Boolean(label))
     .filter(isEpisodeFaceArea);
 
+  const derivedFaceAreas = facePoints.length
+    ? Array.from(new Set(facePoints.map((point) => point.division)))
+    : faceAreas.length
+      ? faceAreas
+      : isEpisodeFaceArea(row.face_area)
+        ? [row.face_area]
+        : [];
+
   return {
     id: row.id,
     user_id: row.user_id,
     pain_type: row.pain_type,
-    face_areas: faceAreas.length
-      ? faceAreas
-      : isEpisodeFaceArea(row.face_area)
-        ? [row.face_area]
-        : [],
+    pain_pattern: row.pain_pattern ?? "continuous",
+    pulse_duration_seconds: row.pulse_duration_seconds,
+    face_areas: derivedFaceAreas,
+    face_points: facePoints,
     severity: row.severity,
     duration_seconds: row.duration_seconds,
     onset_at: row.onset_at,
@@ -64,6 +91,8 @@ export async function getEpisodesForUser(userId: string, filters: DashboardFilte
         id,
         user_id,
         pain_type,
+        pain_pattern,
+        pulse_duration_seconds,
         face_area,
         severity,
         duration_seconds,
@@ -74,6 +103,13 @@ export async function getEpisodesForUser(userId: string, filters: DashboardFilte
           face_area_options (
             normalized_label
           )
+        ),
+        episode_face_points (
+          x,
+          y,
+          division,
+          location_key,
+          location_label
         ),
         episode_triggers (
           trigger_options (

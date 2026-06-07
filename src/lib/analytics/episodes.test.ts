@@ -7,7 +7,13 @@ const episodes: EpisodeRecord[] = [
     id: "1",
     user_id: "user-1",
     pain_type: "trigeminal_neuralgia",
-    face_areas: ["left_cheek", "jaw"],
+    pain_pattern: "episodic_pulsing",
+    pulse_duration_seconds: 2,
+    face_areas: ["v2", "v3"],
+    face_points: [
+      { x: 280, y: 430, division: "v2", location: "right_cheek", label: "Right cheek" },
+      { x: 280, y: 520, division: "v3", location: "right_jaw", label: "Right jaw" },
+    ],
     severity: 8,
     duration_seconds: 930,
     onset_at: "2026-03-10T14:00:00.000Z",
@@ -20,7 +26,10 @@ const episodes: EpisodeRecord[] = [
     id: "2",
     user_id: "user-1",
     pain_type: "trigeminal_neuralgia",
-    face_areas: ["jaw"],
+    pain_pattern: "episodic_pulsing",
+    pulse_duration_seconds: 1,
+    face_areas: ["v3"],
+    face_points: [{ x: 280, y: 520, division: "v3", location: "right_jaw", label: "Right jaw" }],
     severity: 6,
     duration_seconds: 600,
     onset_at: "2026-03-22T09:00:00.000Z",
@@ -33,7 +42,10 @@ const episodes: EpisodeRecord[] = [
     id: "3",
     user_id: "user-1",
     pain_type: "occipital_neuralgia",
-    face_areas: ["right_cheek", "multiple_areas"],
+    pain_pattern: "continuous",
+    pulse_duration_seconds: null,
+    face_areas: ["v2", "multiple_areas"],
+    face_points: [{ x: 720, y: 430, division: "v2", location: "left_cheek", label: "Left cheek" }],
     severity: 9,
     duration_seconds: 1800,
     onset_at: "2026-04-05T20:00:00.000Z",
@@ -70,15 +82,17 @@ describe("episode analytics", () => {
     expect(triggerCounts[1]).toEqual({ label: "Cold air", value: 2 });
   });
 
-  it("counts every selected face area across episodes", () => {
+  it("counts pain locations with their trigeminal division", () => {
     const faceAreaCounts = buildFaceAreaCounts(episodes);
 
-    expect(faceAreaCounts).toEqual([
-      { label: "Jaw", value: 2 },
-      { label: "Left cheek", value: 1 },
-      { label: "Right cheek", value: 1 },
-      { label: "Multiple areas (legacy)", value: 1 },
-    ]);
+    expect(faceAreaCounts).toEqual(
+      expect.arrayContaining([
+        { label: "Right jaw (V3)", value: 2 },
+        { label: "Right cheek (V2)", value: 1 },
+        { label: "Left cheek (V2)", value: 1 },
+      ]),
+    );
+    expect(faceAreaCounts).toHaveLength(3);
   });
 
   it("builds a month-by-month trend series", () => {

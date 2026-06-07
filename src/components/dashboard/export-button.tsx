@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { btnSecondaryClass } from "@/lib/design/ui-classes";
 import type { DashboardFilters } from "@/lib/types/episodes";
 
 type ExportButtonProps = {
@@ -18,10 +19,7 @@ export function ExportButton({ filters }: ExportButtonProps) {
   }
 
   return (
-    <Link
-      href={`/dashboard/export?${params.toString()}`}
-      className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[color:var(--border)] bg-white px-4 py-2 font-semibold"
-    >
+    <Link href={`/dashboard/export?${params.toString()}`} className={btnSecondaryClass}>
       Export CSV
     </Link>
   );

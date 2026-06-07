@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "@/components/ui/card";
+import { CHART_THEME } from "@/lib/design/chart-theme";
 import type { CategoryCount } from "@/lib/types/episodes";
 
 type MedicationChartProps = {
@@ -20,7 +21,7 @@ export function MedicationChart({ data }: MedicationChartProps) {
   return (
     <Card className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold">Medication usage trends</h2>
+        <h2 className="font-display text-xl font-bold">Medication usage trends</h2>
         <p className="text-sm text-[color:var(--muted)]">
           How often each medication was selected in the filtered entries.
         </p>
@@ -30,16 +31,29 @@ export function MedicationChart({ data }: MedicationChartProps) {
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
-              <CartesianGrid stroke="#e5eaf5" vertical={false} />
-              <XAxis dataKey="label" angle={-20} textAnchor="end" height={70} interval={0} />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#16a34a" radius={[8, 8, 0, 0]} />
+              <CartesianGrid stroke={CHART_THEME.grid} vertical={false} strokeDasharray="4 4" />
+              <XAxis
+                dataKey="label"
+                angle={-20}
+                textAnchor="end"
+                height={70}
+                interval={0}
+                tick={{ fill: "#7a7190", fontSize: 11 }}
+              />
+              <YAxis allowDecimals={false} tick={{ fill: "#7a7190", fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid #e8e2f0",
+                  boxShadow: "0 4px 16px rgba(123, 82, 171, 0.1)",
+                }}
+              />
+              <Bar dataKey="value" fill={CHART_THEME.medication} radius={[10, 10, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       ) : (
-        <p className="rounded-xl bg-[color:var(--accent)] px-4 py-3 text-sm text-[color:var(--muted)]">
+        <p className="rounded-2xl bg-[color:var(--accent)] px-4 py-3 text-sm text-[color:var(--muted)]">
           Add a few episode entries to see medication usage patterns here.
         </p>
       )}

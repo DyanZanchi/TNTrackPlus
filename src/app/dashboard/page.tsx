@@ -8,6 +8,7 @@ import { MetricsCards } from "@/components/dashboard/metrics-cards";
 import { RecentEpisodesTable } from "@/components/dashboard/recent-episodes-table";
 import { TopTriggers } from "@/components/dashboard/top-triggers";
 import { TrendsChart } from "@/components/dashboard/trends-chart";
+import { IconPlus } from "@/components/ui/icons";
 import {
   buildFaceAreaCounts,
   buildFilterQuery,
@@ -19,9 +20,11 @@ import {
 import { DEMO_EPISODES } from "@/lib/demo/episodes";
 import { getEpisodesForUser } from "@/lib/episodes/queries";
 import { parseDashboardFilters } from "@/lib/analytics/filters";
+import { alertInfoClass, alertSuccessClass, btnPrimaryClass, cardClass } from "@/lib/design/ui-classes";
 import { hasSupabaseEnv, isAuthBypassed } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EpisodeRecord } from "@/lib/types/episodes";
+import { cn } from "@/lib/utils";
 
 type DashboardPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -31,12 +34,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const filters = await parseDashboardFilters(searchParams);
   const params = searchParams ? await searchParams : {};
   const created = params.created === "1";
+  const treatmentChanged = params.treatment_changed === "1";
   const demoMode = isAuthBypassed();
 
   if (!demoMode && !hasSupabaseEnv()) {
     return (
-      <div className="rounded-2xl border border-[color:var(--border)] bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold">Supabase setup required</h1>
+      <div className={cn(cardClass, "p-6")}>
+        <h1 className="font-display text-2xl font-bold">Supabase setup required</h1>
         <p className="mt-2 text-sm text-[color:var(--muted)]">
           Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to your local environment
           before using the dashboard.
@@ -70,43 +74,56 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const faceAreaData = buildFaceAreaCounts(episodes);
   const medicationData = buildMedicationCounts(episodes);
 
+  const logCtaLabel =
+    summary.totalEpisodes === 0 ? "+ Log your first entry" : "+ Log new entry";
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-1">
+          <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">Dashboard</h1>
           <p className="text-[color:var(--muted)]">
-            Review episode frequency, severity, likely triggers, face-area trends, and medication use.
+            Review episode frequency, severity, triggers, face-area trends, and medication use.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <ExportButton filters={filters} />
-          <Link
-            href="/episodes/new"
-            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2 font-semibold text-[color:var(--primary-foreground)]"
-          >
-            New entry
-          </Link>
         </div>
       </div>
 
-      {created && (
-        <p className="rounded-xl bg-[color:var(--accent)] px-4 py-3 text-sm text-[color:var(--foreground)]">
+      {created ? (
+        <p className={alertSuccessClass}>
           {demoMode
             ? "Demo entry accepted. Demo mode does not save data yet."
             : "Episode saved successfully."}
         </p>
-      )}
+      ) : null}
 
-      {demoMode && (
-        <p className="rounded-xl border border-dashed border-[color:var(--border)] bg-white px-4 py-3 text-sm text-[color:var(--muted)]">
+      {treatmentChanged ? (
+        <p className={alertInfoClass}>Treatment history updated with this entry.</p>
+      ) : null}
+
+      {demoMode ? (
+        <p className={alertInfoClass}>
           Demo mode is enabled. Authentication is bypassed and the dashboard is showing sample data.
         </p>
-      )}
+      ) : null}
+
+      <MetricsCards summary={summary} />
+
+      <Link
+        href="/episodes/new"
+        className={cn(
+          btnPrimaryClass,
+          "flex w-full min-h-14 justify-center text-base shadow-[0_8px_28px_rgba(123,82,171,0.32)]",
+        )}
+      >
+        <IconPlus className="h-5 w-5" />
+        {logCtaLabel}
+      </Link>
 
       <FilterBar filters={filters} />
-      <MetricsCards summary={summary} />
       <TrendsChart data={trendData} />
 
       <div className="grid gap-6 xl:grid-cols-2">

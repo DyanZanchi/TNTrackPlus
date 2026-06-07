@@ -1,37 +1,73 @@
 import { describe, expect, it } from "vitest";
 import { episodeSchema } from "./episode";
 
+const sampleFacePoints = JSON.stringify([
+  { x: 280, y: 430, division: "v2", location: "right_cheek", label: "Right cheek" },
+  { x: 500, y: 540, division: "v3", location: "chin", label: "Chin" },
+]);
+
+const baseEpisode = {
+  pain_type: "trigeminal_neuralgia",
+  face_points: sampleFacePoints,
+  pain_pattern: "continuous",
+  pulse_duration_hms: "",
+  severity: "8",
+  duration_hms: "00:15:30",
+  onset_at: "2026-04-11T14:30",
+  trigger_ids: ["11111111-1111-4111-8111-000000000001"],
+  medication_ids: ["22222222-2222-4222-8222-000000000002"],
+  notes: "Pain started after lunch.",
+  treatment_history_changed: "no",
+};
+
 describe("episodeSchema", () => {
-  it("accepts a valid structured episode entry", () => {
-    const result = episodeSchema.safeParse({
-      pain_type: "trigeminal_neuralgia",
-      face_areas: ["left_cheek", "jaw"],
-      severity: "8",
-      duration_hms: "00:15:30",
-      onset_at: "2026-04-11T14:30",
-      trigger_ids: ["11111111-1111-4111-8111-000000000001"],
-      medication_ids: ["22222222-2222-4222-8222-000000000002"],
-      notes: "Pain started after lunch.",
-    });
+  it("accepts a valid continuous episode entry", () => {
+    const result = episodeSchema.safeParse(baseEpisode);
 
     expect(result.success).toBe(true);
 
     if (result.success) {
       expect(result.data.severity).toBe(8);
       expect(result.data.duration_hms).toBe(930);
-      expect(result.data.onset_at).toContain("2026-04-11T");
-      expect(result.data.face_areas).toEqual(["left_cheek", "jaw"]);
-      expect(result.data.trigger_ids).toHaveLength(1);
+      expect(result.data.pain_pattern).toBe("continuous");
+      expect(result.data.pulse_duration_seconds).toBeNull();
+      expect(result.data.face_areas).toEqual(["v2", "v3"]);
+    }
+  });
+
+  it("accepts episodic pain with a pulse length", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_pattern: "episodic_pulsing",
+      pulse_duration_hms: "00:00:02",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.pain_pattern).toBe("episodic_pulsing");
+      expect(result.data.pulse_duration_seconds).toBe(2);
+    }
+  });
+
+  it("requires pulse length for episodic pain", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_pattern: "episodic_pulsing",
+      pulse_duration_hms: "",
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Enter the length of each pulse.");
     }
   });
 
   it("rejects entries without a trigger selection", () => {
     const result = episodeSchema.safeParse({
-      pain_type: "trigeminal_neuralgia",
-      face_areas: ["left_cheek"],
-      severity: "7",
-      duration_hms: "00:10:00",
-      onset_at: "2026-04-11T14:30",
+      ...baseEpisode,
+      pain_pattern: "continuous",
       trigger_ids: [],
       medication_ids: [],
       notes: "",
@@ -46,7 +82,8 @@ describe("episodeSchema", () => {
 
   it("requires a facial pain type", () => {
     const result = episodeSchema.safeParse({
-      face_areas: ["left_cheek"],
+      face_points: sampleFacePoints,
+      pain_pattern: "continuous",
       severity: "6",
       duration_hms: "00:10:00",
       onset_at: "2026-04-11T14:30",
@@ -64,14 +101,9 @@ describe("episodeSchema", () => {
 
   it("rejects durations outside hh:mm:ss format or above 23:59:59", () => {
     const result = episodeSchema.safeParse({
-      pain_type: "trigeminal_neuralgia",
-      face_areas: ["left_cheek"],
-      severity: "6",
+      ...baseEpisode,
+      pain_pattern: "continuous",
       duration_hms: "24:00:00",
-      onset_at: "2026-04-11T14:30",
-      trigger_ids: ["11111111-1111-4111-8111-000000000001"],
-      medication_ids: [],
-      notes: "",
     });
 
     expect(result.success).toBe(false);
@@ -81,22 +113,17 @@ describe("episodeSchema", () => {
     }
   });
 
-  it("requires at least one selected face area", () => {
+  it("requires at least one face point", () => {
     const result = episodeSchema.safeParse({
-      pain_type: "trigeminal_neuralgia",
-      face_areas: [],
-      severity: "6",
-      duration_hms: "00:10:00",
-      onset_at: "2026-04-11T14:30",
-      trigger_ids: ["11111111-1111-4111-8111-000000000001"],
-      medication_ids: [],
-      notes: "",
+      ...baseEpisode,
+      pain_pattern: "continuous",
+      face_points: "[]",
     });
 
     expect(result.success).toBe(false);
 
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("Select at least one face area.");
+      expect(result.error.issues[0]?.message).toBe("Tap at least one point on the face.");
     }
   });
 });

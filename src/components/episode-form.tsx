@@ -3,18 +3,37 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
-  FACE_AREA_LABELS,
-  FACE_AREA_OPTIONS,
+  PAIN_PATTERN_LABELS,
+  PAIN_PATTERN_OPTIONS,
   PAIN_TYPE_LABELS,
   PAIN_TYPE_OPTIONS,
 } from "@/lib/constants/episode-options";
+import { FaceMapSelector } from "@/components/face-map-selector";
 import { InlineTaxonomyPicker } from "@/components/inline-taxonomy-picker";
+import { TreatmentFields } from "@/components/profile/treatment-fields";
+import { IconTrigger } from "@/components/ui/icons";
+import { SeverityCard } from "@/components/ui/severity-card";
 import type { EpisodeActionState } from "@/lib/episodes/actions";
 import type { TaxonomyActionState } from "@/lib/taxonomy/server";
-import type { TaxonomyOption } from "@/lib/types/episodes";
+import type { PainPatternOption, TaxonomyOption } from "@/lib/types/episodes";
+import type { FaceMapPoint } from "@/lib/face-map/types";
+import type { PatientProfile } from "@/lib/types/profile";
+import {
+  alertErrorClass,
+  alertInfoClass,
+  btnSecondaryClass,
+  hintClass,
+  inputClass,
+  inputMonoClass,
+  labelClass,
+  selectionTileClass,
+  selectionTileSelectedClass,
+} from "@/lib/design/ui-classes";
+import { cn } from "@/lib/utils";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 type EpisodeFormProps = {
+  profile: PatientProfile;
   triggerOptions: TaxonomyOption[];
   medicationOptions: TaxonomyOption[];
   demoMode: boolean;
@@ -43,6 +62,7 @@ function getDefaultOnsetAt() {
 }
 
 export function EpisodeForm({
+  profile,
   triggerOptions,
   medicationOptions,
   demoMode,
@@ -54,33 +74,46 @@ export function EpisodeForm({
 }: EpisodeFormProps) {
   const [state, formAction] = useActionState<EpisodeActionState, FormData>(action, INITIAL_STATE);
   const [severity, setSeverity] = useState(5);
-  const [selectedFaceAreas, setSelectedFaceAreas] = useState<(typeof FACE_AREA_OPTIONS)[number][]>([]);
+  const [painPattern, setPainPattern] = useState<PainPatternOption | "">("");
+  const [facePoints, setFacePoints] = useState<FaceMapPoint[]>([]);
   const [selectedTriggerIds, setSelectedTriggerIds] = useState<string[]>([]);
   const [selectedMedicationIds, setSelectedMedicationIds] = useState<string[]>([]);
+  const [treatmentHistoryChanged, setTreatmentHistoryChanged] = useState<"yes" | "no" | "">("");
+  const [priorTreatments, setPriorTreatments] = useState(
+    profile.prior_treatments.map((entry) => entry.treatment_type),
+  );
+  const [otherTherapies, setOtherTherapies] = useState(
+    profile.other_therapies.map((entry) => entry.therapy_type),
+  );
 
-  function toggleFaceArea(value: (typeof FACE_AREA_OPTIONS)[number]) {
-    setSelectedFaceAreas((current) =>
-      current.includes(value) ? current.filter((entry) => entry !== value) : [...current, value],
-    );
-  }
+  const priorTreatmentOther =
+    profile.prior_treatments.find((entry) => entry.treatment_type === "other")?.other_label ?? "";
+  const otherTherapyOther =
+    profile.other_therapies.find((entry) => entry.therapy_type === "other")?.other_label ?? "";
 
   return (
-    <form action={formAction} className="space-y-6">
-      {state.error && (
-        <p className="rounded-xl bg-[#fdecec] px-4 py-3 text-sm text-[color:var(--danger)]">
-          {state.error}
-        </p>
-      )}
+    <form action={formAction} className="space-y-8">
+      {state.error ? <p className={alertErrorClass}>{state.error}</p> : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <section className="space-y-4">
         <label className="block space-y-2">
-          <span className="text-sm font-medium">Facial pain type</span>
-          <select
-            name="pain_type"
-            defaultValue=""
+          <span className={labelClass}>Time of attack</span>
+          <input
+            type="datetime-local"
+            name="onset_at"
             required
-            className="min-h-11 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2"
-          >
+            defaultValue={getDefaultOnsetAt()}
+            className={cn(inputClass, "max-w-xs")}
+          />
+        </label>
+
+        <SeverityCard severity={severity} onChange={setSeverity} />
+      </section>
+
+      <section className="space-y-4">
+        <label className="block space-y-2">
+          <span className={labelClass}>Facial pain type</span>
+          <select name="pain_type" defaultValue="" required className={inputClass}>
             <option value="" disabled>
               Select one
             </option>
@@ -92,91 +125,86 @@ export function EpisodeForm({
           </select>
         </label>
 
-        <div className="block space-y-2">
-          <span className="text-sm font-medium">Face area</span>
-          <div className="grid gap-2 rounded-xl border border-[color:var(--border)] bg-white p-3 sm:grid-cols-2">
-            {FACE_AREA_OPTIONS.map((option) => (
-              <button
+        <div className="space-y-2">
+          <span className={labelClass}>Pain location on face</span>
+          <FaceMapSelector points={facePoints} onChange={setFacePoints} />
+          <input type="hidden" name="face_points" value={JSON.stringify(facePoints)} />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <fieldset className="space-y-3">
+          <legend className={labelClass}>Pain pattern</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PAIN_PATTERN_OPTIONS.map((option) => (
+              <label
                 key={option}
-                type="button"
-                onClick={() => toggleFaceArea(option)}
-                className={`min-h-11 rounded-xl border px-3 py-2 text-left text-sm ${
-                  selectedFaceAreas.includes(option)
-                    ? "border-[color:var(--primary)] bg-[color:var(--accent)] text-[color:var(--primary)]"
-                    : "border-[color:var(--border)]"
-                }`}
-                aria-pressed={selectedFaceAreas.includes(option)}
+                className={cn(
+                  selectionTileClass,
+                  painPattern === option && selectionTileSelectedClass,
+                )}
               >
-                {FACE_AREA_LABELS[option]}
-              </button>
+                <input
+                  type="radio"
+                  name="pain_pattern"
+                  value={option}
+                  required
+                  checked={painPattern === option}
+                  onChange={() => setPainPattern(option)}
+                  className="sr-only"
+                />
+                {PAIN_PATTERN_LABELS[option]}
+              </label>
             ))}
           </div>
-          <span className="text-xs text-[color:var(--muted)]">
-            Select every area involved in this episode.
-          </span>
-          {selectedFaceAreas.map((option) => (
-            <input key={option} type="hidden" name="face_areas" value={option} />
-          ))}
+          <p className={hintClass}>Choose whether the pain felt steady or came in short bursts.</p>
+        </fieldset>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {painPattern === "episodic_pulsing" ? (
+            <label className="block space-y-2 sm:col-span-2">
+              <span className={labelClass}>Length of each pulse</span>
+              <input
+                type="text"
+                name="pulse_duration_hms"
+                defaultValue="00:00:02"
+                required
+                inputMode="text"
+                maxLength={8}
+                className={cn(inputMonoClass, "max-w-xs")}
+                placeholder="00:00:02"
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+              />
+              <p className={hintClass}>Enter how long each individual pulse lasted, using hh:mm:ss.</p>
+            </label>
+          ) : null}
+
+          <label className="block space-y-2">
+            <span className={labelClass}>Episode length</span>
+            <input
+              type="text"
+              name="duration_hms"
+              defaultValue="00:05:00"
+              required
+              inputMode="text"
+              maxLength={8}
+              className={inputMonoClass}
+              placeholder="00:05:00"
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+            />
+            <p className={hintClass}>Enter duration as hh:mm:ss, up to 23:59:59.</p>
+          </label>
         </div>
+      </section>
 
-        <label className="block space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Severity</span>
-            <span className="rounded-full bg-[color:var(--accent)] px-2.5 py-1 text-sm font-semibold text-[color:var(--primary)]">
-              {severity}/10
-            </span>
-          </div>
-          <input
-            type="range"
-            name="severity"
-            min="1"
-            max="10"
-            step="1"
-            value={severity}
-            required
-            onChange={(event) => setSeverity(Number(event.target.value))}
-            className="w-full accent-[color:var(--primary)]"
-          />
-          <div className="flex justify-between text-xs text-[color:var(--muted)]">
-            <span>1</span>
-            <span>10</span>
-          </div>
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium">Episode length</span>
-          <input
-            type="text"
-            name="duration_hms"
-            defaultValue="00:05:00"
-            required
-            inputMode="text"
-            maxLength={8}
-            className="min-h-11 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2 font-mono"
-            placeholder="00:05:00"
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-          />
-          <span className="text-xs text-[color:var(--muted)]">
-            Enter duration as `hh:mm:ss`, up to `23:59:59`.
-          </span>
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-medium">Onset time</span>
-          <input
-            type="datetime-local"
-            name="onset_at"
-            required
-            defaultValue={getDefaultOnsetAt()}
-            className="min-h-11 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2"
-          />
-        </label>
-
+      <section className="space-y-6">
         <InlineTaxonomyPicker
           name="trigger_ids"
-          title="Likely triggers"
+          title="What prompted the attack?"
           singularLabel="trigger"
           options={triggerOptions}
           selectedIds={selectedTriggerIds}
@@ -184,6 +212,8 @@ export function EpisodeForm({
           addAction={addTriggerAction}
           hideAction={hideTriggerAction}
           demoMode={demoMode}
+          grid
+          tileIcon={IconTrigger}
         />
 
         <InlineTaxonomyPicker
@@ -195,34 +225,80 @@ export function EpisodeForm({
           onSelectionChange={setSelectedMedicationIds}
           addAction={addMedicationAction}
           hideAction={hideMedicationAction}
-          helperText="Select all that apply. If you choose “No medication”, leave other medications unchecked."
+          helperText='Select all that apply. If you choose "No medication", leave other medications unchecked.'
           demoMode={demoMode}
         />
-      </div>
+      </section>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-medium">Notes</span>
-        <textarea
-          name="notes"
-          rows={4}
-          maxLength={500}
-          className="w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2"
-          placeholder="Optional details about the episode, context, or anything unusual you noticed."
-        />
-      </label>
+      <section className="space-y-3">
+        <fieldset className="space-y-3">
+          <legend className={labelClass}>Treatment history</legend>
+          <p className="text-sm text-[color:var(--muted)]">
+            Has anything changed about your surgeries, procedures, or other therapies since your last
+            entry?
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(["no", "yes"] as const).map((option) => (
+              <label
+                key={option}
+                className={cn(
+                  selectionTileClass,
+                  treatmentHistoryChanged === option && selectionTileSelectedClass,
+                )}
+              >
+                <input
+                  type="radio"
+                  name="treatment_history_changed"
+                  value={option}
+                  required
+                  checked={treatmentHistoryChanged === option}
+                  onChange={() => setTreatmentHistoryChanged(option)}
+                  className="sr-only"
+                />
+                {option === "yes" ? "Something Has Changed" : "No Changes"}
+              </label>
+            ))}
+          </div>
+          {treatmentHistoryChanged === "yes" ? (
+            <div className="space-y-3 rounded-3xl border border-[color:var(--border)] bg-[color:var(--accent)]/60 p-4">
+              <p className="text-sm text-[color:var(--muted)]">
+                Update your surgeries, procedures, and other therapies below.
+              </p>
+              <TreatmentFields
+                priorTreatments={priorTreatments}
+                otherTherapies={otherTherapies}
+                onPriorTreatmentsChange={setPriorTreatments}
+                onOtherTherapiesChange={setOtherTherapies}
+                priorTreatmentOther={priorTreatmentOther}
+                otherTherapyOther={otherTherapyOther}
+              />
+            </div>
+          ) : null}
+        </fieldset>
+      </section>
 
-      {demoMode && (
-        <p className="rounded-xl bg-[color:var(--accent)] px-4 py-3 text-sm text-[color:var(--muted)]">
+      <section className="space-y-2">
+        <label className="block space-y-2">
+          <span className={labelClass}>Notes</span>
+          <textarea
+            name="notes"
+            rows={4}
+            maxLength={500}
+            className={cn(inputClass, "resize-y")}
+            placeholder="Optional details about the episode, context, or anything unusual you noticed."
+          />
+        </label>
+      </section>
+
+      {demoMode ? (
+        <p className={alertInfoClass}>
           Demo mode lets you preview the multi-select layout, but entries are not saved yet.
         </p>
-      )}
+      ) : null}
 
-      <div className="flex flex-wrap gap-3">
-        <SubmitButton label="Save entry" pendingLabel="Saving entry..." />
-        <Link
-          href="/dashboard"
-          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[color:var(--border)] px-4 py-2 font-semibold"
-        >
+      <div className="flex flex-wrap gap-3 pt-2">
+        <SubmitButton label="Save entry" pendingLabel="Saving entry..." className="min-w-36" />
+        <Link href="/dashboard" className={btnSecondaryClass}>
           Cancel
         </Link>
       </div>

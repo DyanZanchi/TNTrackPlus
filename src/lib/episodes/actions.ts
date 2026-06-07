@@ -2,6 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { FACE_AREA_OPTION_IDS, LEGACY_MULTIPLE_AREAS } from "@/lib/constants/episode-options";
+import { getProfileForUser } from "@/lib/profile/queries";
+import { savePatientTreatments } from "@/lib/profile/save-treatments";
+import { parseTreatmentFormData, type TreatmentFieldsData } from "@/lib/validation/treatment";
 import { isAuthBypassed, hasSupabaseEnv } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveSelectedTaxonomyOptions } from "@/lib/taxonomy/server";
@@ -19,13 +22,16 @@ export async function createEpisodeAction(
 ): Promise<EpisodeActionState> {
   const values = {
     pain_type: formData.get("pain_type"),
-    face_areas: formData.getAll("face_areas"),
+    face_points: formData.get("face_points"),
+    pain_pattern: formData.get("pain_pattern"),
+    pulse_duration_hms: formData.get("pulse_duration_hms"),
     severity: formData.get("severity"),
     duration_hms: formData.get("duration_hms"),
     onset_at: formData.get("onset_at"),
     trigger_ids: formData.getAll("trigger_ids"),
     medication_ids: formData.getAll("medication_ids"),
     notes: formData.get("notes"),
+    treatment_history_changed: formData.get("treatment_history_changed"),
   };
 
   const result = episodeSchema.safeParse(values);
@@ -35,8 +41,27 @@ export async function createEpisodeAction(
     return { error: issue?.message ?? "Check the episode details and try again." };
   }
 
+  let treatmentUpdate: TreatmentFieldsData | undefined;
+
+  if (result.data.treatment_history_changed) {
+    const treatmentResult = parseTreatmentFormData(formData);
+
+    if (!treatmentResult.success) {
+      const [issue] = treatmentResult.error.issues;
+      return { error: issue?.message ?? "Check the treatment details and try again." };
+    }
+
+    treatmentUpdate = treatmentResult.data;
+  }
+
   if (isAuthBypassed()) {
-    redirect("/dashboard?created=1&demo=1");
+    const demoParams = new URLSearchParams({ created: "1", demo: "1" });
+
+    if (result.data.treatment_history_changed) {
+      demoParams.set("treatment_changed", "1");
+    }
+
+    redirect(`/dashboard?${demoParams.toString()}`);
   }
 
   if (!hasSupabaseEnv()) {
@@ -74,6 +99,8 @@ export async function createEpisodeAction(
     .insert({
       user_id: user.id,
       pain_type: result.data.pain_type,
+      pain_pattern: result.data.pain_pattern,
+      pulse_duration_seconds: result.data.pulse_duration_seconds,
       face_area:
         result.data.face_areas.length === 1 ? result.data.face_areas[0] : LEGACY_MULTIPLE_AREAS,
       severity: result.data.severity,
@@ -81,6 +108,7 @@ export async function createEpisodeAction(
       duration_seconds: result.data.duration_hms,
       onset_at: result.data.onset_at,
       notes: result.data.notes || null,
+      treatment_history_changed: result.data.treatment_history_changed,
       trigger_name: null,
       medication_taken: null,
     })
@@ -119,6 +147,23 @@ export async function createEpisodeAction(
     }
   }
 
+  if (result.data.face_points.length) {
+    const { error: facePointError } = await supabase.from("episode_face_points").insert(
+      result.data.face_points.map((point) => ({
+        episode_id: episodeId,
+        x: point.x,
+        y: point.y,
+        division: point.division,
+        location_key: point.location,
+        location_label: point.label,
+      })),
+    );
+
+    if (facePointError) {
+      return { error: facePointError.message };
+    }
+  }
+
   if (medicationOptions.length) {
     const { error: medicationError } = await supabase.from("episode_medications").insert(
       medicationOptions.map((option) => ({
@@ -132,5 +177,36 @@ export async function createEpisodeAction(
     }
   }
 
-  redirect("/dashboard?created=1");
+  if (result.data.treatment_history_changed && treatmentUpdate) {
+    const treatmentSaveResult = await savePatientTreatments(supabase, user.id, treatmentUpdate);
+
+    if (treatmentSaveResult.error) {
+      return { error: treatmentSaveResult.error };
+    }
+
+    const profile = await getProfileForUser(user.id);
+
+    const { error: revisionError } = await supabase.from("patient_profile_revisions").insert({
+      user_id: user.id,
+      age: profile.age,
+      gender: profile.gender,
+      gender_other: profile.gender_other,
+      prior_treatments: treatmentUpdate.prior_treatments,
+      other_therapies: treatmentUpdate.other_therapies,
+      treatment_history_changed: true,
+      source: "episode",
+    });
+
+    if (revisionError) {
+      return { error: revisionError.message };
+    }
+  }
+
+  const redirectParams = new URLSearchParams({ created: "1" });
+
+  if (result.data.treatment_history_changed) {
+    redirectParams.set("treatment_changed", "1");
+  }
+
+  redirect(`/dashboard?${redirectParams.toString()}`);
 }

@@ -7,6 +7,7 @@ import {
   subMonths,
 } from "date-fns";
 import { EPISODE_FACE_AREA_LABELS } from "@/lib/constants/episode-options";
+import { formatFacePointStatLabel } from "@/lib/face-map/format";
 import type {
   CategoryCount,
   DashboardFilters,
@@ -99,9 +100,13 @@ export function buildTriggerCounts(episodes: EpisodeRecord[]): CategoryCount[] {
 
 export function buildFaceAreaCounts(episodes: EpisodeRecord[]): CategoryCount[] {
   return countByLabel(
-    episodes.flatMap((episode) =>
-      episode.face_areas.map((faceArea) => EPISODE_FACE_AREA_LABELS[faceArea]),
-    ),
+    episodes.flatMap((episode) => {
+      if (episode.face_points.length) {
+        return episode.face_points.map((point) => formatFacePointStatLabel(point));
+      }
+
+      return episode.face_areas.map((faceArea) => EPISODE_FACE_AREA_LABELS[faceArea]);
+    }),
   );
 }
 

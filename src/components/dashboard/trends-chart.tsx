@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "@/components/ui/card";
+import { CHART_THEME } from "@/lib/design/chart-theme";
 import type { MonthlyTrendPoint } from "@/lib/types/episodes";
 
 type TrendsChartProps = {
@@ -22,7 +23,7 @@ export function TrendsChart({ data }: TrendsChartProps) {
   return (
     <Card className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Monthly trends</h2>
+        <h2 className="font-display text-xl font-bold">Pain over time</h2>
         <p className="text-sm text-[color:var(--muted)]">
           Episode counts and average severity across recent months.
         </p>
@@ -32,11 +33,17 @@ export function TrendsChart({ data }: TrendsChartProps) {
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
-              <CartesianGrid stroke="#e5eaf5" vertical={false} />
-              <XAxis dataKey="month" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="episodes" fill="#3156d3" radius={[8, 8, 0, 0]} />
+              <CartesianGrid stroke={CHART_THEME.grid} vertical={false} strokeDasharray="4 4" />
+              <XAxis dataKey="month" tick={{ fill: "#7a7190", fontSize: 12 }} />
+              <YAxis allowDecimals={false} tick={{ fill: "#7a7190", fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid #e8e2f0",
+                  boxShadow: "0 4px 16px rgba(123, 82, 171, 0.1)",
+                }}
+              />
+              <Bar dataKey="episodes" fill={CHART_THEME.primary} radius={[10, 10, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -44,11 +51,24 @@ export function TrendsChart({ data }: TrendsChartProps) {
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid stroke="#e5eaf5" vertical={false} />
-              <XAxis dataKey="month" />
-              <YAxis domain={[0, 10]} />
-              <Tooltip />
-              <Line type="monotone" dataKey="averageSeverity" stroke="#7b61ff" strokeWidth={3} dot />
+              <CartesianGrid stroke={CHART_THEME.grid} vertical={false} strokeDasharray="4 4" />
+              <XAxis dataKey="month" tick={{ fill: "#7a7190", fontSize: 12 }} />
+              <YAxis domain={[0, 10]} tick={{ fill: "#7a7190", fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid #e8e2f0",
+                  boxShadow: "0 4px 16px rgba(123, 82, 171, 0.1)",
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="averageSeverity"
+                stroke={CHART_THEME.secondary}
+                strokeWidth={3}
+                dot={{ fill: CHART_THEME.primary, strokeWidth: 0, r: 4 }}
+                activeDot={{ r: 6, fill: CHART_THEME.primary }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>

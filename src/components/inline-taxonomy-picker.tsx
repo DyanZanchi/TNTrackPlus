@@ -1,8 +1,23 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { IconTag, type IconProps } from "@/components/ui/icons";
+import {
+  alertErrorClass,
+  alertInfoClass,
+  alertSuccessClass,
+  btnPrimaryClass,
+  cardClass,
+  hintClass,
+  inputClass,
+  labelClass,
+  selectionGridTileClass,
+  selectionTileClass,
+  selectionTileSelectedClass,
+} from "@/lib/design/ui-classes";
 import type { TaxonomyActionState } from "@/lib/taxonomy/server";
 import type { TaxonomyOption } from "@/lib/types/episodes";
+import { cn } from "@/lib/utils";
 
 type InlineTaxonomyPickerProps = {
   name: string;
@@ -18,6 +33,8 @@ type InlineTaxonomyPickerProps = {
   hideAction: (formData: FormData) => Promise<TaxonomyActionState>;
   helperText?: string;
   demoMode: boolean;
+  grid?: boolean;
+  tileIcon?: React.ComponentType<IconProps>;
 };
 
 function sortOptions(options: TaxonomyOption[]) {
@@ -45,6 +62,8 @@ export function InlineTaxonomyPicker({
   hideAction,
   helperText,
   demoMode,
+  grid = false,
+  tileIcon: TileIcon = IconTag,
 }: InlineTaxonomyPickerProps) {
   const [options, setOptions] = useState(() => sortOptions(initialOptions));
   const [draftLabel, setDraftLabel] = useState("");
@@ -115,92 +134,93 @@ export function InlineTaxonomyPicker({
   }
 
   return (
-    <div className="space-y-2">
-      <span className="text-sm font-medium">{title}</span>
-      <div className="space-y-3 rounded-xl border border-[color:var(--border)] bg-white p-3">
-        <div className="grid gap-2">
-          {options.map((option) => {
-            const isSelected = selectedIdSet.has(option.id);
-            const isCustom = option.user_id !== null;
+    <div className="space-y-3">
+      <span className={labelClass}>{title}</span>
 
-            return (
-              <div key={option.id} className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => toggleOption(option.id)}
-                  className={`flex min-h-11 flex-1 items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm ${
-                    isSelected
-                      ? "border-[color:var(--primary)] bg-[color:var(--accent)] text-[color:var(--primary)]"
-                      : "border-[color:var(--border)]"
-                  }`}
-                  aria-pressed={isSelected}
-                >
+      <div className={cn(grid ? "grid gap-2 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-2")}>
+        {options.map((option) => {
+          const isSelected = selectedIdSet.has(option.id);
+          const isCustom = option.user_id !== null;
+
+          return (
+            <div key={option.id} className={cn("group relative", grid && "min-h-[5.5rem]")}>
+              <button
+                type="button"
+                onClick={() => toggleOption(option.id)}
+                className={cn(
+                  selectionTileClass,
+                  "h-full w-full",
+                  grid && selectionGridTileClass,
+                  isSelected && selectionTileSelectedClass,
+                )}
+                aria-pressed={isSelected}
+              >
+                {grid ? (
+                  <span className="text-[color:var(--primary)]">
+                    <TileIcon className="mx-auto h-5 w-5" />
+                  </span>
+                ) : (
                   <span
-                    className={`h-4 w-4 rounded border ${
+                    className={cn(
+                      "h-4 w-4 shrink-0 rounded border",
                       isSelected
                         ? "border-[color:var(--primary)] bg-[color:var(--primary)]"
-                        : "border-[color:var(--border)]"
-                    }`}
+                        : "border-[color:var(--border)]",
+                    )}
                     aria-hidden="true"
                   />
-                  <span>{option.label}</span>
+                )}
+                <span className={cn(grid && "text-xs leading-tight")}>{option.label}</span>
+              </button>
+
+              {isCustom && !demoMode ? (
+                <button
+                  type="button"
+                  onClick={() => handleHide(option.id)}
+                  className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[10px] font-medium text-[color:var(--muted)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[color:var(--accent)] hover:text-[color:var(--primary)]"
+                >
+                  Hide
                 </button>
-
-                {isCustom && !demoMode ? (
-                  <button
-                    type="button"
-                    onClick={() => handleHide(option.id)}
-                    className="text-xs font-medium text-[color:var(--muted)]"
-                  >
-                    Hide
-                  </button>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-col gap-3 border-t border-[color:var(--border)] pt-3 md:flex-row md:items-end">
-          <label className="flex-1 space-y-2">
-            <span className="text-sm font-medium">Add custom {singularLabel}</span>
-            <input
-              type="text"
-              value={draftLabel}
-              onChange={(event) => setDraftLabel(event.target.value)}
-              className="min-h-11 w-full rounded-xl border border-[color:var(--border)] bg-white px-3 py-2"
-              placeholder={`Type a custom ${singularLabel}`}
-              disabled={demoMode || isPending}
-            />
-          </label>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={demoMode || isPending || !draftLabel.trim()}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 md:min-w-32"
-          >
-            {isPending ? "Saving..." : "Add option"}
-          </button>
-        </div>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
 
-      {helperText ? <span className="text-xs text-[color:var(--muted)]">{helperText}</span> : null}
+      <div className={cn(cardClass, "flex flex-col gap-3 p-4 md:flex-row md:items-end")}>
+        <label className="flex-1 space-y-2">
+          <span className="text-sm font-medium text-[color:var(--muted)]">
+            Add custom {singularLabel}
+          </span>
+          <input
+            type="text"
+            value={draftLabel}
+            onChange={(event) => setDraftLabel(event.target.value)}
+            className={inputClass}
+            placeholder={`Type a custom ${singularLabel}`}
+            disabled={demoMode || isPending}
+          />
+        </label>
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={demoMode || isPending || !draftLabel.trim()}
+          className={cn(btnPrimaryClass, "md:min-w-32")}
+        >
+          {isPending ? "Saving..." : "Add option"}
+        </button>
+      </div>
+
+      {helperText ? <p className={hintClass}>{helperText}</p> : null}
 
       {demoMode ? (
-        <p className="rounded-xl bg-[color:var(--accent)] px-4 py-3 text-sm text-[color:var(--muted)]">
-          Custom {title.toLowerCase()} are disabled in demo mode.
-        </p>
+        <p className={alertInfoClass}>Custom {title.toLowerCase()} are disabled in demo mode.</p>
       ) : null}
 
-      {message.error ? (
-        <p className="rounded-xl bg-[#fdecec] px-4 py-3 text-sm text-[color:var(--danger)]">
-          {message.error}
-        </p>
-      ) : null}
+      {message.error ? <p className={alertErrorClass}>{message.error}</p> : null}
 
       {!message.error && message.success ? (
-        <p className="rounded-xl bg-[color:var(--accent)] px-4 py-3 text-sm text-[color:var(--foreground)]">
-          {message.success}
-        </p>
+        <p className={alertSuccessClass}>{message.success}</p>
       ) : null}
 
       {selectedIds.map((id) => (

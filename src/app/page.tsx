@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { btnPrimaryClass, btnSecondaryClass } from "@/lib/design/ui-classes";
+import { cn } from "@/lib/utils";
 
 const features = [
   "Structured pain episode logging",
@@ -10,44 +12,38 @@ const features = [
 
 export default function HomePage() {
   return (
-    <div className="space-y-8">
-      <section className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
+    <div className="space-y-12">
+      <section className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
         <div className="space-y-6">
-          <span className="inline-flex rounded-full bg-[color:var(--accent)] px-3 py-1 text-sm font-medium text-[color:var(--primary)]">
+          <span className="inline-flex rounded-full bg-[color:var(--accent)] px-4 py-1.5 text-sm font-semibold text-[color:var(--primary)]">
             Trigeminal neuralgia symptom tracking
           </span>
           <div className="space-y-4">
-            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h1 className="font-display max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
               Capture facial pain episodes in a consistent, reviewable way.
             </h1>
             <p className="max-w-2xl text-lg text-[color:var(--muted)]">
-              TN Tracker helps patients log episode severity, duration, likely triggers, and medication
+              TN Track+ helps patients log episode severity, duration, likely triggers, and medication
               use so patterns are easier to discuss over time.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link
-              href="/signup"
-              className="rounded-xl bg-[color:var(--primary)] px-5 py-3 font-semibold text-[color:var(--primary-foreground)]"
-            >
+            <Link href="/signup" className={cn(btnPrimaryClass, "px-6 py-3 text-base")}>
               Create account
             </Link>
-            <Link
-              href="/login"
-              className="rounded-xl border border-[color:var(--border)] bg-white px-5 py-3 font-semibold"
-            >
+            <Link href="/login" className={cn(btnSecondaryClass, "px-6 py-3 text-base")}>
               Log in
             </Link>
           </div>
         </div>
 
-        <Card className="space-y-4">
-          <h2 className="text-xl font-semibold">What the MVP includes</h2>
+        <Card elevated className="space-y-4">
+          <h2 className="font-display text-xl font-bold">What the MVP includes</h2>
           <ul className="space-y-3 text-sm text-[color:var(--muted)]">
             {features.map((feature) => (
               <li key={feature} className="flex gap-3">
-                <span className="mt-1 h-2.5 w-2.5 rounded-full bg-[color:var(--primary)]" />
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[color:var(--primary)]" />
                 <span>{feature}</span>
               </li>
             ))}
@@ -56,25 +52,25 @@ export default function HomePage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <h3 className="text-lg font-semibold">Log episodes</h3>
-          <p className="mt-2 text-sm text-[color:var(--muted)]">
-            Record where the pain occurred, how severe it was, the episode duration, and the likely
-            trigger.
-          </p>
-        </Card>
-        <Card>
-          <h3 className="text-lg font-semibold">Review trends</h3>
-          <p className="mt-2 text-sm text-[color:var(--muted)]">
-            See how often episodes occur each month and which triggers or medications are most common.
-          </p>
-        </Card>
-        <Card>
-          <h3 className="text-lg font-semibold">Share data</h3>
-          <p className="mt-2 text-sm text-[color:var(--muted)]">
-            Export filtered logs to CSV for clinic visits or personal records.
-          </p>
-        </Card>
+        {[
+          {
+            title: "Log episodes",
+            body: "Record where the pain occurred, how severe it was, the episode duration, and the likely trigger.",
+          },
+          {
+            title: "Review trends",
+            body: "See how often episodes occur each month and which triggers or medications are most common.",
+          },
+          {
+            title: "Share data",
+            body: "Export filtered logs to CSV for clinic visits or personal records.",
+          },
+        ].map((item) => (
+          <Card key={item.title}>
+            <h3 className="font-display text-lg font-bold">{item.title}</h3>
+            <p className="mt-2 text-sm text-[color:var(--muted)]">{item.body}</p>
+          </Card>
+        ))}
       </section>
     </div>
   );

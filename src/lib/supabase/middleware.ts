@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSupabaseEnv, hasSupabaseEnv, isAuthBypassed } from "@/lib/supabase/env";
 
-const PROTECTED_PATHS = ["/dashboard", "/episodes"];
+const PROTECTED_PATHS = ["/dashboard", "/episodes", "/settings"];
 
 export async function updateSession(request: NextRequest) {
   if (isAuthBypassed() || !hasSupabaseEnv()) {

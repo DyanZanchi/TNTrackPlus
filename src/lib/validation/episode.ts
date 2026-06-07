@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { FACE_AREA_OPTIONS, PAIN_TYPE_OPTIONS } from "@/lib/constants/episode-options";
+import {
+  FACE_AREA_OPTIONS,
+  PAIN_PATTERN_OPTIONS,
+  PAIN_TYPE_OPTIONS,
+} from "@/lib/constants/episode-options";
+import { getUniqueDivisions } from "@/lib/face-map/classify";
 
 const durationPattern = /^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
 
@@ -14,44 +19,148 @@ function parseDurationToSeconds(value: string) {
   return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
 }
 
-export const episodeSchema = z.object({
-  pain_type: z.enum(PAIN_TYPE_OPTIONS, {
-    error: "Select the facial pain type.",
-  }),
-  face_areas: z
-    .array(z.enum(FACE_AREA_OPTIONS))
-    .transform((values) => Array.from(new Set(values)))
-    .refine((values) => values.length > 0, "Select at least one face area."),
-  severity: z.coerce
-    .number()
-    .int()
-    .min(1, "Severity must be between 1 and 10.")
-    .max(10, "Severity must be between 1 and 10."),
-  duration_hms: z
+function durationHmsSchema(message: string) {
+  return z
     .string()
     .trim()
-    .regex(durationPattern, "Episode length must use hh:mm:ss format.")
+    .regex(durationPattern, message)
     .transform((value) => parseDurationToSeconds(value))
-    .refine((value) => value !== null && value > 0, "Episode length must be at least 00:00:01.")
-    .refine((value) => value !== null && value <= 86399, "Episode length must be 23:59:59 or less.")
-    .transform((value) => value as number),
-  onset_at: z
-    .string()
-    .min(1, "Provide the onset time.")
-    .transform((value) => new Date(value))
-    .refine((value) => !Number.isNaN(value.getTime()), "Provide a valid onset time.")
-    .transform((value) => value.toISOString()),
-  trigger_ids: z
-    .array(z.string().uuid("Select a valid trigger option."))
-    .min(1, "Select at least one trigger."),
-  medication_ids: z.array(z.string().uuid("Select a valid medication option.")).default([]),
-  notes: z
-    .string()
-    .trim()
-    .max(500, "Notes must be 500 characters or less.")
-    .optional()
-    .transform((value) => (value ? value : "")),
+    .refine((value) => value !== null && value > 0, "Duration must be at least 00:00:01.")
+    .refine((value) => value !== null && value <= 86399, "Duration must be 23:59:59 or less.")
+    .transform((value) => value as number);
+}
+
+const facePointSchema = z.object({
+  x: z.coerce.number().min(0).max(1000),
+  y: z.coerce.number().min(0).max(1000),
+  division: z.enum(FACE_AREA_OPTIONS),
+  location: z.string().min(1),
+  label: z.string().min(1),
 });
+
+function parseFacePoints(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || !value.trim()) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return z.array(facePointSchema).parse(parsed);
+  } catch {
+    return null;
+  }
+}
+
+export const episodeSchema = z
+  .object({
+    pain_type: z.enum(PAIN_TYPE_OPTIONS, {
+      error: "Select the facial pain type.",
+    }),
+    pain_pattern: z.enum(PAIN_PATTERN_OPTIONS, {
+      error: "Select whether the pain was continuous or episodic.",
+    }),
+    pulse_duration_hms: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => value ?? ""),
+    face_points: z.preprocess(
+      (value) => parseFacePoints(value as FormDataEntryValue | null),
+      z
+        .array(facePointSchema)
+        .min(1, "Tap at least one point on the face.")
+        .or(z.literal(null)),
+    ),
+    severity: z.coerce
+      .number()
+      .int()
+      .min(1, "Severity must be between 1 and 10.")
+      .max(10, "Severity must be between 1 and 10."),
+    duration_hms: durationHmsSchema("Episode length must use hh:mm:ss format."),
+    onset_at: z
+      .string()
+      .min(1, "Provide the onset time.")
+      .transform((value) => new Date(value))
+      .refine((value) => !Number.isNaN(value.getTime()), "Provide a valid onset time.")
+      .transform((value) => value.toISOString()),
+    trigger_ids: z
+      .array(z.string().uuid("Select a valid trigger option."))
+      .min(1, "Select at least one trigger."),
+    medication_ids: z.array(z.string().uuid("Select a valid medication option.")).default([]),
+    notes: z
+      .string()
+      .trim()
+      .max(500, "Notes must be 500 characters or less.")
+      .optional()
+      .transform((value) => (value ? value : "")),
+    treatment_history_changed: z
+      .enum(["yes", "no"], {
+        error: "Indicate whether your treatment history has changed since your last entry.",
+      })
+      .transform((value) => value === "yes"),
+  })
+  .superRefine((values, context) => {
+    if (values.face_points === null) {
+      context.addIssue({
+        code: "custom",
+        message: "Tap at least one point on the face.",
+        path: ["face_points"],
+      });
+    }
+
+    if (values.pain_pattern === "episodic_pulsing") {
+      if (!values.pulse_duration_hms) {
+        context.addIssue({
+          code: "custom",
+          message: "Enter the length of each pulse.",
+          path: ["pulse_duration_hms"],
+        });
+        return;
+      }
+
+      const pulseSeconds = parseDurationToSeconds(values.pulse_duration_hms);
+
+      if (pulseSeconds === null) {
+        context.addIssue({
+          code: "custom",
+          message: "Pulse length must use hh:mm:ss format.",
+          path: ["pulse_duration_hms"],
+        });
+        return;
+      }
+
+      if (pulseSeconds <= 0) {
+        context.addIssue({
+          code: "custom",
+          message: "Pulse length must be at least 00:00:01.",
+          path: ["pulse_duration_hms"],
+        });
+        return;
+      }
+
+      if (pulseSeconds > 86399) {
+        context.addIssue({
+          code: "custom",
+          message: "Pulse length must be 23:59:59 or less.",
+          path: ["pulse_duration_hms"],
+        });
+      }
+    }
+  })
+  .transform((values) => {
+    const facePoints = values.face_points === null ? [] : values.face_points;
+    const pulseDurationSeconds =
+      values.pain_pattern === "episodic_pulsing"
+        ? parseDurationToSeconds(values.pulse_duration_hms)
+        : null;
+
+    return {
+      ...values,
+      face_points: facePoints,
+      face_areas: getUniqueDivisions(facePoints),
+      pulse_duration_seconds: pulseDurationSeconds,
+    };
+  });
 
 export type EpisodeFormValues = z.input<typeof episodeSchema>;
 export type EpisodeInsert = z.output<typeof episodeSchema>;

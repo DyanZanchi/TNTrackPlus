@@ -1,11 +1,4 @@
-export const FACE_AREA_OPTIONS = [
-  "left_cheek",
-  "right_cheek",
-  "jaw",
-  "upper_lip",
-  "lower_lip",
-  "eye_forehead",
-] as const;
+export const FACE_AREA_OPTIONS = ["v1", "v2", "v3"] as const;
 
 export const LEGACY_MULTIPLE_AREAS = "multiple_areas" as const;
 
@@ -16,29 +9,35 @@ export const PAIN_TYPE_OPTIONS = [
   "occipital_neuralgia",
 ] as const;
 
+export const PAIN_PATTERN_OPTIONS = ["continuous", "episodic_pulsing"] as const;
+
 export const DURATION_OPTIONS = [1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180] as const;
 
 export const FACE_AREA_LABELS: Record<(typeof FACE_AREA_OPTIONS)[number], string> = {
-  left_cheek: "Left cheek",
-  right_cheek: "Right cheek",
-  jaw: "Jaw",
-  upper_lip: "Upper lip",
-  lower_lip: "Lower lip",
-  eye_forehead: "Eye / forehead",
+  v1: "V1 — Ophthalmic",
+  v2: "V2 — Maxillary",
+  v3: "V3 — Mandibular",
 };
+
+const LEGACY_FACE_AREA_LABELS = {
+  left_cheek: "Left cheek (legacy)",
+  right_cheek: "Right cheek (legacy)",
+  jaw: "Jaw (legacy)",
+  upper_lip: "Upper lip (legacy)",
+  lower_lip: "Lower lip (legacy)",
+  eye_forehead: "Eye / forehead (legacy)",
+} as const;
 
 export const EPISODE_FACE_AREA_LABELS = {
   ...FACE_AREA_LABELS,
+  ...LEGACY_FACE_AREA_LABELS,
   [LEGACY_MULTIPLE_AREAS]: "Multiple areas (legacy)",
 } as const;
 
 export const FACE_AREA_OPTION_IDS: Record<(typeof FACE_AREA_OPTIONS)[number], string> = {
-  left_cheek: "33333333-3333-4333-8333-000000000001",
-  right_cheek: "33333333-3333-4333-8333-000000000002",
-  jaw: "33333333-3333-4333-8333-000000000003",
-  upper_lip: "33333333-3333-4333-8333-000000000004",
-  lower_lip: "33333333-3333-4333-8333-000000000005",
-  eye_forehead: "33333333-3333-4333-8333-000000000006",
+  v1: "33333333-3333-4333-8333-000000000007",
+  v2: "33333333-3333-4333-8333-000000000008",
+  v3: "33333333-3333-4333-8333-000000000009",
 };
 
 export const PAIN_TYPE_LABELS: Record<(typeof PAIN_TYPE_OPTIONS)[number], string> = {
@@ -47,6 +46,12 @@ export const PAIN_TYPE_LABELS: Record<(typeof PAIN_TYPE_OPTIONS)[number], string
   anesthesia_dolorosa: "Anesthesia Dolorosa",
   occipital_neuralgia: "Occipital Neuralgia",
 };
+
+export const PAIN_PATTERN_LABELS: Record<(typeof PAIN_PATTERN_OPTIONS)[number], string> = {
+  continuous: "Continuous",
+  episodic_pulsing: "Episodic",
+};
+
 
 export function isEpisodeFaceArea(value: string): value is keyof typeof EPISODE_FACE_AREA_LABELS {
   return value in EPISODE_FACE_AREA_LABELS;

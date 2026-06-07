@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { btnPrimaryClass } from "@/lib/design/ui-classes";
 import { cn } from "@/lib/utils";
 
 type SubmitButtonProps = {
@@ -17,14 +18,7 @@ export function SubmitButton({
   const { pending } = useFormStatus();
 
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className={cn(
-        "inline-flex min-h-11 items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2 font-semibold text-[color:var(--primary-foreground)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70",
-        className,
-      )}
-    >
+    <button type="submit" disabled={pending} className={cn(btnPrimaryClass, className)}>
       {pending ? pendingLabel : label}
     </button>
   );
