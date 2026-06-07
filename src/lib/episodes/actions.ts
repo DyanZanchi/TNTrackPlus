@@ -7,6 +7,7 @@ import {
   diffAddedPriorTreatments,
 } from "@/lib/profile/treatment-diff";
 import { getProfileForUser } from "@/lib/profile/queries";
+import { savePatientPainTypes } from "@/lib/profile/save-pain-types";
 import { savePatientTreatments } from "@/lib/profile/save-treatments";
 import type { EpisodeTreatmentHistorySnapshot } from "@/lib/types/episodes";
 import { parseTreatmentFormData, type TreatmentFieldsData } from "@/lib/validation/treatment";
@@ -26,7 +27,6 @@ export async function createEpisodeAction(
   formData: FormData,
 ): Promise<EpisodeActionState> {
   const values = {
-    pain_type: formData.get("pain_type"),
     face_points: formData.get("face_points"),
     pain_pattern: formData.get("pain_pattern"),
     pulse_duration_hms: formData.get("pulse_duration_hms"),
@@ -87,10 +87,19 @@ export async function createEpisodeAction(
     return { error: "Choose either 'No medication' or one or more medications, not both." };
   }
 
-  const [triggerOptions, medicationOptions] = await Promise.all([
-    resolveSelectedTaxonomyOptions(user.id, "trigger", result.data.trigger_ids),
-    resolveSelectedTaxonomyOptions(user.id, "medication", result.data.medication_ids),
-  ]);
+  const painTypeIds = formData.getAll("pain_type_ids").map(String);
+
+  const [triggerOptions, medicationOptions, profilePainTypeOptions, updatedPainTypeOptions] =
+    await Promise.all([
+      resolveSelectedTaxonomyOptions(user.id, "trigger", result.data.trigger_ids),
+      resolveSelectedTaxonomyOptions(user.id, "medication", result.data.medication_ids),
+      getProfileForUser(user.id).then((profile) =>
+        resolveSelectedTaxonomyOptions(user.id, "pain_type", profile.pain_type_option_ids),
+      ),
+      result.data.treatment_history_changed
+        ? resolveSelectedTaxonomyOptions(user.id, "pain_type", painTypeIds)
+        : Promise.resolve([]),
+    ]);
 
   if (triggerOptions.length !== new Set(result.data.trigger_ids).size) {
     return { error: "One or more selected triggers are unavailable." };
@@ -101,9 +110,26 @@ export async function createEpisodeAction(
   }
 
   let treatmentHistorySnapshot: EpisodeTreatmentHistorySnapshot | null = null;
+  let episodePainTypeOptions = profilePainTypeOptions;
 
   if (result.data.treatment_history_changed && treatmentUpdate) {
     const previousProfile = await getProfileForUser(user.id);
+
+    if (!painTypeIds.length) {
+      return { error: "Select at least one facial pain type when updating your profile." };
+    }
+
+    if (updatedPainTypeOptions.length !== new Set(painTypeIds).size) {
+      return { error: "One or more selected facial pain types are unavailable." };
+    }
+
+    const painTypesResult = await savePatientPainTypes(supabase, user.id, painTypeIds);
+
+    if (painTypesResult.error) {
+      return { error: painTypesResult.error };
+    }
+
+    episodePainTypeOptions = updatedPainTypeOptions;
 
     treatmentHistorySnapshot = {
       prior_treatments: treatmentUpdate.prior_treatments,
@@ -117,13 +143,17 @@ export async function createEpisodeAction(
         treatmentUpdate.other_therapies,
       ),
     };
+  } else if (!episodePainTypeOptions.length) {
+    return {
+      error: "Set your facial pain type in Profile settings before logging an entry.",
+    };
   }
 
   const { data: episode, error } = await supabase
     .from("episodes")
     .insert({
       user_id: user.id,
-      pain_type: result.data.pain_type,
+      pain_type: episodePainTypeOptions[0].normalized_label,
       pain_pattern: result.data.pain_pattern,
       pulse_duration_seconds: result.data.pulse_duration_seconds,
       // Legacy summary column — divisions live in episode_face_areas / episode_face_points.
@@ -147,6 +177,19 @@ export async function createEpisodeAction(
   }
 
   const episodeId = episode.id;
+
+  if (episodePainTypeOptions.length) {
+    const { error: episodePainTypesError } = await supabase.from("episode_pain_types").insert(
+      episodePainTypeOptions.map((option) => ({
+        episode_id: episodeId,
+        pain_type_option_id: option.id,
+      })),
+    );
+
+    if (episodePainTypesError) {
+      return { error: episodePainTypesError.message };
+    }
+  }
 
   if (triggerOptions.length) {
     const { error: triggerError } = await supabase.from("episode_triggers").insert(
@@ -220,6 +263,7 @@ export async function createEpisodeAction(
       age: profile.age,
       gender: profile.gender,
       gender_other: profile.gender_other,
+      pain_types: episodePainTypeOptions.map((option) => option.label),
       prior_treatments: treatmentUpdate.prior_treatments,
       other_therapies: treatmentUpdate.other_therapies,
       treatment_history_changed: true,

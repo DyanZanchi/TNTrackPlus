@@ -7,7 +7,6 @@ const sampleFacePoints = JSON.stringify([
 ]);
 
 const baseEpisode = {
-  pain_type: "trigeminal_neuralgia",
   face_points: sampleFacePoints,
   pain_pattern: "continuous",
   pulse_duration_hms: "",
@@ -92,25 +91,6 @@ describe("episodeSchema", () => {
 
     if (!result.success) {
       expect(result.error.issues[0]?.message).toBe("Select at least one trigger.");
-    }
-  });
-
-  it("requires a facial pain type", () => {
-    const result = episodeSchema.safeParse({
-      face_points: sampleFacePoints,
-      pain_pattern: "continuous",
-      severity: "6",
-      duration_hms: "00:10:00",
-      onset_at: "2026-04-11T14:30",
-      trigger_ids: ["11111111-1111-4111-8111-000000000001"],
-      medication_ids: [],
-      notes: "",
-    });
-
-    expect(result.success).toBe(false);
-
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("Select the facial pain type.");
     }
   });
 

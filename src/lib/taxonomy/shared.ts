@@ -1,11 +1,12 @@
 import {
   BUILTIN_MEDICATION_OPTIONS,
+  BUILTIN_PAIN_TYPE_OPTIONS,
   BUILTIN_TRIGGER_OPTIONS,
   NO_MEDICATION_OPTION_ID,
 } from "@/lib/constants/episode-options";
 import type { TaxonomyOption } from "@/lib/types/episodes";
 
-export type TaxonomyKind = "trigger" | "medication";
+export type TaxonomyKind = "trigger" | "medication" | "pain_type";
 
 export function normalizeTaxonomyLabel(value: string) {
   return value
@@ -16,7 +17,12 @@ export function normalizeTaxonomyLabel(value: string) {
 }
 
 export function getDemoTaxonomyOptions(kind: TaxonomyKind): TaxonomyOption[] {
-  const options = kind === "trigger" ? BUILTIN_TRIGGER_OPTIONS : BUILTIN_MEDICATION_OPTIONS;
+  const options =
+    kind === "trigger"
+      ? BUILTIN_TRIGGER_OPTIONS
+      : kind === "medication"
+        ? BUILTIN_MEDICATION_OPTIONS
+        : BUILTIN_PAIN_TYPE_OPTIONS;
 
   return options.map((option) => ({
     ...option,

@@ -6,7 +6,7 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
   {
     id: "demo-1",
     user_id: DEMO_USER_ID,
-    pain_type: "trigeminal_neuralgia",
+    pain_type_labels: ["Trigeminal Neuralgia"],
     pain_pattern: "episodic_pulsing",
     pulse_duration_seconds: 2,
     face_areas: ["v2"],
@@ -27,7 +27,7 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
   {
     id: "demo-2",
     user_id: DEMO_USER_ID,
-    pain_type: "trigeminal_neuralgia",
+    pain_type_labels: ["Trigeminal Neuralgia"],
     pain_pattern: "episodic_pulsing",
     pulse_duration_seconds: 1,
     face_areas: ["v3"],
@@ -48,7 +48,7 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
   {
     id: "demo-3",
     user_id: DEMO_USER_ID,
-    pain_type: "occipital_neuralgia",
+    pain_type_labels: ["Occipital Neuralgia"],
     pain_pattern: "continuous",
     pulse_duration_seconds: null,
     face_areas: ["v1"],
@@ -69,7 +69,7 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
   {
     id: "demo-4",
     user_id: DEMO_USER_ID,
-    pain_type: "geniculate_neuralgia",
+    pain_type_labels: ["Geniculate Neuralgia"],
     pain_pattern: "episodic_pulsing",
     pulse_duration_seconds: 3,
     face_areas: ["v2"],
@@ -95,7 +95,7 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
   {
     id: "demo-5",
     user_id: DEMO_USER_ID,
-    pain_type: "anesthesia_dolorosa",
+    pain_type_labels: ["Anesthesia Dolorosa"],
     pain_pattern: "continuous",
     pulse_duration_seconds: null,
     face_areas: ["v1", "v2", "v3"],
@@ -109,10 +109,10 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
     onset_at: "2026-04-18T06:50:00.000Z",
     trigger_labels: ["Spontaneous / no clear trigger"],
     medication_labels: ["No medication"],
-    notes: "No obvious trigger that morning.",
+    notes: "Low-level background pain most of the day.",
     treatment_history_changed: false,
     treatment_change_date: null,
     treatment_history_snapshot: null,
-    created_at: "2026-04-18T07:35:00.000Z",
+    created_at: "2026-04-18T07:00:00.000Z",
   },
 ];

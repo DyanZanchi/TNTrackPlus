@@ -30,6 +30,9 @@ export const profileSchema = z
       .min(1, "Age must be between 1 and 120.")
       .max(120, "Age must be between 1 and 120."),
     gender: z.enum(GENDER_OPTIONS, { error: "Select a gender option." }),
+    pain_type_ids: z
+      .array(z.string().min(1))
+      .min(1, "Select at least one facial pain type."),
     gender_other: z
       .string()
       .trim()
@@ -77,6 +80,7 @@ export const profileSchema = z
     age: values.age,
     gender: values.gender,
     gender_other: values.gender === "other" ? values.gender_other : "",
+    pain_type_ids: values.pain_type_ids,
     prior_treatments: values.prior_treatments.map((treatment) => ({
       treatment_type: treatment,
       other_label: treatment === "other" ? values.prior_treatment_other : null,
@@ -92,6 +96,7 @@ export function parseProfileFormData(formData: FormData) {
     age: formData.get("age"),
     gender: formData.get("gender"),
     gender_other: formData.get("gender_other"),
+    pain_type_ids: parseCheckboxList(formData.getAll("pain_type_ids")),
     prior_treatments: parseCheckboxList(formData.getAll("prior_treatments")),
     prior_treatment_other: emptyToUndefined(formData.get("prior_treatment_other")),
     other_therapies: parseCheckboxList(formData.getAll("other_therapies")),

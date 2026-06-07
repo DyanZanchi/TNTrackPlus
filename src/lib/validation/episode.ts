@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  FACE_AREA_OPTIONS,
-  PAIN_PATTERN_OPTIONS,
-  PAIN_TYPE_OPTIONS,
-} from "@/lib/constants/episode-options";
+import { FACE_AREA_OPTIONS, PAIN_PATTERN_OPTIONS } from "@/lib/constants/episode-options";
 import { getUniqueDivisions } from "@/lib/face-map/classify";
 import { FACE_LOCATION_KEYS } from "@/lib/face-map/types";
 
@@ -58,9 +54,6 @@ function parseFacePoints(value: FormDataEntryValue | null) {
 
 export const episodeSchema = z
   .object({
-    pain_type: z.enum(PAIN_TYPE_OPTIONS, {
-      error: "Select the facial pain type.",
-    }),
     pain_pattern: z.enum(PAIN_PATTERN_OPTIONS, {
       error: "Select whether the pain was continuous or episodic.",
     }),

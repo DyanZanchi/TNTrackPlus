@@ -2,11 +2,27 @@ export const FACE_AREA_OPTIONS = ["v1", "v2", "v3"] as const;
 
 export const LEGACY_MULTIPLE_AREAS = "multiple_areas" as const;
 
-export const PAIN_TYPE_OPTIONS = [
-  "trigeminal_neuralgia",
-  "geniculate_neuralgia",
-  "anesthesia_dolorosa",
-  "occipital_neuralgia",
+export const BUILTIN_PAIN_TYPE_OPTIONS = [
+  {
+    id: "44444444-4444-4444-8444-000000000001",
+    label: "Trigeminal Neuralgia",
+    normalized_label: "trigeminal_neuralgia",
+  },
+  {
+    id: "44444444-4444-4444-8444-000000000002",
+    label: "Geniculate Neuralgia",
+    normalized_label: "geniculate_neuralgia",
+  },
+  {
+    id: "44444444-4444-4444-8444-000000000003",
+    label: "Anesthesia Dolorosa",
+    normalized_label: "anesthesia_dolorosa",
+  },
+  {
+    id: "44444444-4444-4444-8444-000000000004",
+    label: "Occipital Neuralgia",
+    normalized_label: "occipital_neuralgia",
+  },
 ] as const;
 
 export const PAIN_PATTERN_OPTIONS = ["continuous", "episodic_pulsing"] as const;
@@ -40,12 +56,9 @@ export const FACE_AREA_OPTION_IDS: Record<(typeof FACE_AREA_OPTIONS)[number], st
   v3: "33333333-3333-4333-8333-000000000009",
 };
 
-export const PAIN_TYPE_LABELS: Record<(typeof PAIN_TYPE_OPTIONS)[number], string> = {
-  trigeminal_neuralgia: "Trigeminal Neuralgia",
-  geniculate_neuralgia: "Geniculate Neuralgia",
-  anesthesia_dolorosa: "Anesthesia Dolorosa",
-  occipital_neuralgia: "Occipital Neuralgia",
-};
+export function formatPainTypeLabels(labels: string[]) {
+  return labels.join(", ");
+}
 
 export const PAIN_PATTERN_LABELS: Record<(typeof PAIN_PATTERN_OPTIONS)[number], string> = {
   continuous: "Continuous",

@@ -8,9 +8,11 @@ import { isAuthBypassed } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   createCustomMedicationAction,
+  createCustomPainTypeAction,
   createCustomTriggerAction,
   getTaxonomyOptionsForUser,
   hideCustomMedicationAction,
+  hideCustomPainTypeAction,
   hideCustomTriggerAction,
 } from "@/lib/taxonomy/server";
 import { getDemoTaxonomyOptions } from "@/lib/taxonomy/shared";
@@ -20,6 +22,7 @@ export default async function NewEpisodePage() {
   const demoMode = isAuthBypassed();
   let triggerOptions = getDemoTaxonomyOptions("trigger");
   let medicationOptions = getDemoTaxonomyOptions("medication");
+  let painTypeOptions = getDemoTaxonomyOptions("pain_type");
   let profile = DEMO_PROFILE;
 
   if (!demoMode) {
@@ -32,14 +35,16 @@ export default async function NewEpisodePage() {
       redirect("/login");
     }
 
-    const [allTriggers, allMedications, userProfile] = await Promise.all([
+    const [allTriggers, allMedications, allPainTypes, userProfile] = await Promise.all([
       getTaxonomyOptionsForUser(user.id, "trigger"),
       getTaxonomyOptionsForUser(user.id, "medication"),
+      getTaxonomyOptionsForUser(user.id, "pain_type"),
       getProfileForUser(user.id),
     ]);
 
     triggerOptions = allTriggers;
     medicationOptions = allMedications;
+    painTypeOptions = allPainTypes;
     profile = userProfile;
   }
 
@@ -63,11 +68,14 @@ export default async function NewEpisodePage() {
           profile={profile}
           triggerOptions={triggerOptions}
           medicationOptions={medicationOptions}
+          painTypeOptions={painTypeOptions}
           demoMode={demoMode}
           addTriggerAction={createCustomTriggerAction}
           addMedicationAction={createCustomMedicationAction}
+          addPainTypeAction={createCustomPainTypeAction}
           hideTriggerAction={hideCustomTriggerAction}
           hideMedicationAction={hideCustomMedicationAction}
+          hidePainTypeAction={hideCustomPainTypeAction}
           action={createEpisodeAction}
         />
       </Card>

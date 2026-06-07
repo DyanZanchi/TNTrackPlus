@@ -31,13 +31,18 @@ function formatAddedItems(snapshot: EpisodeTreatmentHistorySnapshot) {
   return full.length ? full.join(", ") : "Updated treatment history";
 }
 
-export function formatTreatmentHistoryChange(
-  snapshot: EpisodeTreatmentHistorySnapshot | null,
-  changeDate: string | null,
-) {
-  if (!snapshot || !changeDate) {
+export function formatTreatmentChangeDate(changeDate: string | null) {
+  if (!changeDate) {
     return "";
   }
 
-  return `${format(new Date(`${changeDate}T12:00:00`), "MMM d, yyyy")}: ${formatAddedItems(snapshot)}`;
+  return format(new Date(`${changeDate}T12:00:00`), "MMM d, yyyy");
+}
+
+export function formatTreatmentHistoryUpdate(snapshot: EpisodeTreatmentHistorySnapshot | null) {
+  if (!snapshot) {
+    return "";
+  }
+
+  return formatAddedItems(snapshot);
 }

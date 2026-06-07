@@ -1,8 +1,8 @@
 import { format } from "date-fns";
 import { NextResponse } from "next/server";
-import { PAIN_TYPE_LABELS, formatFaceAreaLabels } from "@/lib/constants/episode-options";
+import { formatFaceAreaLabels, formatPainTypeLabels } from "@/lib/constants/episode-options";
 import { formatPainPatternDescription } from "@/lib/episodes/pain-pattern";
-import { formatTreatmentHistoryChange } from "@/lib/profile/format-treatment-change";
+import { formatTreatmentHistoryUpdate } from "@/lib/profile/format-treatment-change";
 import { formatFacePointLabels } from "@/lib/face-map/format";
 import { buildFilterQuery } from "@/lib/analytics/episodes";
 import { DEMO_EPISODES } from "@/lib/demo/episodes";
@@ -28,7 +28,7 @@ function parseFilters(request: Request): DashboardFilters {
 function toCsv(episodes: EpisodeRecord[]) {
   const header = [
     "onset_at",
-    "pain_type",
+    "pain_type_labels",
     "face_areas",
     "pain_locations",
     "pain_pattern",
@@ -43,7 +43,7 @@ function toCsv(episodes: EpisodeRecord[]) {
 
   const rows = episodes.map((episode) => [
     format(new Date(episode.onset_at), "yyyy-MM-dd HH:mm"),
-    PAIN_TYPE_LABELS[episode.pain_type],
+    formatPainTypeLabels(episode.pain_type_labels),
     formatFaceAreaLabels(episode.face_areas),
     episode.face_points.length ? formatFacePointLabels(episode.face_points) : "",
     formatPainPatternDescription(episode.pain_pattern, episode.pulse_duration_seconds),
@@ -57,10 +57,7 @@ function toCsv(episodes: EpisodeRecord[]) {
     episode.treatment_history_changed ? "yes" : "no",
     episode.treatment_change_date ?? "",
     episode.treatment_history_changed
-      ? formatTreatmentHistoryChange(
-          episode.treatment_history_snapshot,
-          episode.treatment_change_date,
-        )
+      ? formatTreatmentHistoryUpdate(episode.treatment_history_snapshot)
       : "",
   ]);
 

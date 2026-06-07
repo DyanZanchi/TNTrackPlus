@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
+  formatPainTypeLabels,
   PAIN_PATTERN_LABELS,
   PAIN_PATTERN_OPTIONS,
-  PAIN_TYPE_LABELS,
-  PAIN_TYPE_OPTIONS,
 } from "@/lib/constants/episode-options";
 import { FaceMapSelector } from "@/components/face-map-selector";
 import { InlineTaxonomyPicker } from "@/components/inline-taxonomy-picker";
@@ -36,6 +35,7 @@ type EpisodeFormProps = {
   profile: PatientProfile;
   triggerOptions: TaxonomyOption[];
   medicationOptions: TaxonomyOption[];
+  painTypeOptions: TaxonomyOption[];
   demoMode: boolean;
   addTriggerAction: (
     previousState: TaxonomyActionState | undefined,
@@ -45,8 +45,13 @@ type EpisodeFormProps = {
     previousState: TaxonomyActionState | undefined,
     formData: FormData,
   ) => Promise<TaxonomyActionState>;
+  addPainTypeAction: (
+    previousState: TaxonomyActionState | undefined,
+    formData: FormData,
+  ) => Promise<TaxonomyActionState>;
   hideTriggerAction: (formData: FormData) => Promise<TaxonomyActionState>;
   hideMedicationAction: (formData: FormData) => Promise<TaxonomyActionState>;
+  hidePainTypeAction: (formData: FormData) => Promise<TaxonomyActionState>;
   action: (
     previousState: EpisodeActionState | undefined,
     formData: FormData,
@@ -61,15 +66,24 @@ function getDefaultOnsetAt() {
   return local.toISOString().slice(0, 16);
 }
 
+function resolvePainTypeLabels(optionIds: string[], options: TaxonomyOption[]) {
+  return optionIds
+    .map((id) => options.find((option) => option.id === id)?.label)
+    .filter((label): label is string => Boolean(label));
+}
+
 export function EpisodeForm({
   profile,
   triggerOptions,
   medicationOptions,
+  painTypeOptions,
   demoMode,
   addTriggerAction,
   addMedicationAction,
+  addPainTypeAction,
   hideTriggerAction,
   hideMedicationAction,
+  hidePainTypeAction,
   action,
 }: EpisodeFormProps) {
   const [state, formAction] = useActionState<EpisodeActionState, FormData>(action, INITIAL_STATE);
@@ -79,6 +93,11 @@ export function EpisodeForm({
   const [selectedTriggerIds, setSelectedTriggerIds] = useState<string[]>([]);
   const [selectedMedicationIds, setSelectedMedicationIds] = useState<string[]>([]);
   const [treatmentHistoryChanged, setTreatmentHistoryChanged] = useState<"yes" | "no" | "">("");
+  const [selectedPainTypeIds, setSelectedPainTypeIds] = useState(profile.pain_type_option_ids);
+  const profilePainTypeLabels = resolvePainTypeLabels(
+    profile.pain_type_option_ids,
+    painTypeOptions,
+  );
   const [priorTreatments, setPriorTreatments] = useState(
     profile.prior_treatments.map((entry) => entry.treatment_type),
   );
@@ -111,20 +130,6 @@ export function EpisodeForm({
       </section>
 
       <section className="space-y-4">
-        <label className="block space-y-2">
-          <span className={labelClass}>Facial pain type</span>
-          <select name="pain_type" defaultValue="" required className={inputClass}>
-            <option value="" disabled>
-              Select one
-            </option>
-            {PAIN_TYPE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {PAIN_TYPE_LABELS[option]}
-              </option>
-            ))}
-          </select>
-        </label>
-
         <div className="space-y-2">
           <span className={labelClass}>Pain location on face</span>
           <FaceMapSelector points={facePoints} onChange={setFacePoints} />
@@ -232,10 +237,26 @@ export function EpisodeForm({
 
       <section className="space-y-3">
         <fieldset className="space-y-3">
-          <legend className={labelClass}>Treatment history</legend>
+          <legend className={labelClass}>Profile & treatment history</legend>
           <p className="text-sm text-[color:var(--muted)]">
-            Has anything changed about your surgeries, procedures, or other therapies since your last
-            entry?
+            Facial pain type is saved on your profile
+            {profilePainTypeLabels.length ? (
+              <>
+                {" "}
+                (currently <strong>{formatPainTypeLabels(profilePainTypeLabels)}</strong>)
+              </>
+            ) : (
+              <>
+                {" "}
+                —{" "}
+                <Link href="/settings" className="font-medium text-[color:var(--primary)]">
+                  set it in Profile settings
+                </Link>{" "}
+                before logging an entry
+              </>
+            )}
+            . Has anything changed about your pain type, surgeries, procedures, or other therapies
+            since your last entry?
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             {(["no", "yes"] as const).map((option) => (
@@ -274,9 +295,22 @@ export function EpisodeForm({
                   For example, the date of a new procedure or when a therapy started.
                 </p>
               </label>
+              <InlineTaxonomyPicker
+                name="pain_type_ids"
+                title="Facial pain type"
+                singularLabel="pain type"
+                options={painTypeOptions}
+                selectedIds={selectedPainTypeIds}
+                onSelectionChange={setSelectedPainTypeIds}
+                addAction={addPainTypeAction}
+                hideAction={hidePainTypeAction}
+                helperText="Select all that apply. Add a custom pain type if yours is not listed."
+                demoMode={demoMode}
+                grid
+              />
               <p className="text-sm text-[color:var(--muted)]">
-                Update your surgeries, procedures, and other therapies below. This update will be
-                saved with this entry and applied to your overall profile.
+                Update your facial pain type, surgeries, procedures, and other therapies below. This
+                update will be saved with this entry and applied to your overall profile.
               </p>
               <TreatmentFields
                 priorTreatments={priorTreatments}

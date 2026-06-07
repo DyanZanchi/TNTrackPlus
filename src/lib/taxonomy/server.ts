@@ -20,9 +20,13 @@ const labelSchema = z
   .min(2, "Enter at least 2 characters.")
   .max(50, "Keep custom entries to 50 characters or less.");
 
-const TABLES: Record<TaxonomyKind, "trigger_options" | "medication_options"> = {
+const TABLES: Record<
+  TaxonomyKind,
+  "trigger_options" | "medication_options" | "pain_type_options"
+> = {
   trigger: "trigger_options",
   medication: "medication_options",
+  pain_type: "pain_type_options",
 };
 
 export async function getTaxonomyOptionsForUser(userId: string, kind: TaxonomyKind) {
@@ -243,4 +247,16 @@ export async function hideCustomTriggerAction(formData: FormData) {
 
 export async function hideCustomMedicationAction(formData: FormData) {
   return hideCustomOption("medication", formData);
+}
+
+export async function createCustomPainTypeAction(
+  _previousState: TaxonomyActionState | undefined,
+  formData: FormData,
+): Promise<TaxonomyActionState> {
+  const label = formData.get("label");
+  return upsertCustomOption("pain_type", typeof label === "string" ? label : "");
+}
+
+export async function hideCustomPainTypeAction(formData: FormData) {
+  return hideCustomOption("pain_type", formData);
 }

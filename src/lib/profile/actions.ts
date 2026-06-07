@@ -3,7 +3,9 @@
 import { redirect } from "next/navigation";
 import { hasSupabaseEnv, isAuthBypassed } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { savePatientPainTypes } from "@/lib/profile/save-pain-types";
 import { savePatientTreatments } from "@/lib/profile/save-treatments";
+import { resolveSelectedTaxonomyOptions } from "@/lib/taxonomy/server";
 import { parseProfileFormData } from "@/lib/validation/profile";
 
 export type ProfileActionState = {
@@ -40,6 +42,16 @@ export async function saveProfileAction(
   }
 
   const data = result.data;
+  const painTypeOptions = await resolveSelectedTaxonomyOptions(
+    user.id,
+    "pain_type",
+    data.pain_type_ids,
+  );
+
+  if (painTypeOptions.length !== new Set(data.pain_type_ids).size) {
+    return { error: "One or more selected facial pain types are unavailable." };
+  }
+
   const now = new Date().toISOString();
 
   const { error: profileError } = await supabase.from("patient_profiles").upsert({
@@ -54,10 +66,17 @@ export async function saveProfileAction(
     return { error: profileError.message };
   }
 
-  const treatmentResult = await savePatientTreatments(supabase, user.id, {
-    prior_treatments: data.prior_treatments,
-    other_therapies: data.other_therapies,
-  });
+  const [painTypesResult, treatmentResult] = await Promise.all([
+    savePatientPainTypes(supabase, user.id, data.pain_type_ids),
+    savePatientTreatments(supabase, user.id, {
+      prior_treatments: data.prior_treatments,
+      other_therapies: data.other_therapies,
+    }),
+  ]);
+
+  if (painTypesResult.error) {
+    return { error: painTypesResult.error };
+  }
 
   if (treatmentResult.error) {
     return { error: treatmentResult.error };
@@ -68,6 +87,7 @@ export async function saveProfileAction(
     age: data.age,
     gender: data.gender,
     gender_other: data.gender_other || null,
+    pain_types: painTypeOptions.map((option) => option.label),
     prior_treatments: data.prior_treatments,
     other_therapies: data.other_therapies,
     treatment_history_changed: false,

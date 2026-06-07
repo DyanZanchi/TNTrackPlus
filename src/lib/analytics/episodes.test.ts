@@ -6,7 +6,7 @@ const episodes: EpisodeRecord[] = [
   {
     id: "1",
     user_id: "user-1",
-    pain_type: "trigeminal_neuralgia",
+    pain_type_labels: ["Trigeminal Neuralgia"],
     pain_pattern: "episodic_pulsing",
     pulse_duration_seconds: 2,
     face_areas: ["v2", "v3"],
@@ -28,7 +28,7 @@ const episodes: EpisodeRecord[] = [
   {
     id: "2",
     user_id: "user-1",
-    pain_type: "trigeminal_neuralgia",
+    pain_type_labels: ["Trigeminal Neuralgia"],
     pain_pattern: "episodic_pulsing",
     pulse_duration_seconds: 1,
     face_areas: ["v3"],
@@ -47,7 +47,7 @@ const episodes: EpisodeRecord[] = [
   {
     id: "3",
     user_id: "user-1",
-    pain_type: "occipital_neuralgia",
+    pain_type_labels: ["Occipital Neuralgia"],
     pain_pattern: "continuous",
     pulse_duration_seconds: null,
     face_areas: ["v2", "multiple_areas"],

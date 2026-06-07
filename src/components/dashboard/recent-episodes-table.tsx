@@ -1,7 +1,10 @@
 import { format } from "date-fns";
-import { PAIN_TYPE_LABELS, formatFaceAreaLabels } from "@/lib/constants/episode-options";
+import { formatFaceAreaLabels, formatPainTypeLabels } from "@/lib/constants/episode-options";
 import { formatPainPatternDescription } from "@/lib/episodes/pain-pattern";
-import { formatTreatmentHistoryChange } from "@/lib/profile/format-treatment-change";
+import {
+  formatTreatmentChangeDate,
+  formatTreatmentHistoryUpdate,
+} from "@/lib/profile/format-treatment-change";
 import { formatFacePointSummary } from "@/lib/face-map/format";
 import type { EpisodeRecord } from "@/lib/types/episodes";
 import { formatDurationHms, formatDurationSeconds } from "@/lib/utils";
@@ -34,6 +37,7 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
                 <th className="px-2 py-3 font-medium">Duration</th>
                 <th className="px-2 py-3 font-medium">Trigger</th>
                 <th className="px-2 py-3 font-medium">Medication</th>
+                <th className="px-2 py-3 font-medium">Treatment change date</th>
                 <th className="px-2 py-3 font-medium">Treatment update</th>
               </tr>
             </thead>
@@ -41,7 +45,7 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
               {episodes.map((episode) => (
                 <tr key={episode.id}>
                   <td className="px-2 py-3">{format(new Date(episode.onset_at), "PPp")}</td>
-                  <td className="px-2 py-3">{PAIN_TYPE_LABELS[episode.pain_type]}</td>
+                  <td className="px-2 py-3">{formatPainTypeLabels(episode.pain_type_labels)}</td>
                   <td className="px-2 py-3">
                     {episode.face_points.length
                       ? formatFacePointSummary(episode.face_points)
@@ -61,10 +65,12 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
                   <td className="px-2 py-3">{episode.medication_labels.join(", ") || "None recorded"}</td>
                   <td className="px-2 py-3">
                     {episode.treatment_history_changed
-                      ? formatTreatmentHistoryChange(
-                          episode.treatment_history_snapshot,
-                          episode.treatment_change_date,
-                        ) || "Updated"
+                      ? formatTreatmentChangeDate(episode.treatment_change_date) || "—"
+                      : "—"}
+                  </td>
+                  <td className="px-2 py-3">
+                    {episode.treatment_history_changed
+                      ? formatTreatmentHistoryUpdate(episode.treatment_history_snapshot) || "Updated"
                       : "—"}
                   </td>
                 </tr>

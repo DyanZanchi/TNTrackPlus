@@ -6,13 +6,17 @@ import type {
   FaceAreaOption,
 } from "@/lib/types/episodes";
 import { buildFilterQuery } from "@/lib/analytics/episodes";
-import { isEpisodeFaceArea } from "@/lib/constants/episode-options";
+import { BUILTIN_PAIN_TYPE_OPTIONS, isEpisodeFaceArea } from "@/lib/constants/episode-options";
 import type { FaceLocationKey, FaceMapPoint } from "@/lib/face-map/types";
 
 type EpisodeRelationRow = {
   face_area_options?: { normalized_label?: string | null } | null;
   trigger_options?: { label?: string | null } | null;
   medication_options?: { label?: string | null } | null;
+};
+
+type EpisodePainTypeRow = {
+  pain_type_options?: { label?: string | null } | null;
 };
 
 type EpisodeFacePointRow = {
@@ -26,7 +30,7 @@ type EpisodeFacePointRow = {
 type EpisodeQueryRow = {
   id: string;
   user_id: string;
-  pain_type: EpisodeRecord["pain_type"];
+  pain_type: string;
   pain_pattern: EpisodeRecord["pain_pattern"];
   pulse_duration_seconds: number | null;
   face_area: string;
@@ -42,6 +46,7 @@ type EpisodeQueryRow = {
   episode_face_points?: EpisodeFacePointRow[] | null;
   episode_triggers?: EpisodeRelationRow[] | null;
   episode_medications?: EpisodeRelationRow[] | null;
+  episode_pain_types?: EpisodePainTypeRow[] | null;
 };
 
 function mapEpisodeRow(row: EpisodeQueryRow): EpisodeRecord {
@@ -66,10 +71,18 @@ function mapEpisodeRow(row: EpisodeQueryRow): EpisodeRecord {
         ? [row.face_area]
         : [];
 
+  const painTypeLabels = (row.episode_pain_types ?? [])
+    .map((item) => item.pain_type_options?.label)
+    .filter((label): label is string => Boolean(label));
+
+  const legacyPainTypeLabel =
+    BUILTIN_PAIN_TYPE_OPTIONS.find((option) => option.normalized_label === row.pain_type)?.label ??
+    row.pain_type;
+
   return {
     id: row.id,
     user_id: row.user_id,
-    pain_type: row.pain_type,
+    pain_type_labels: painTypeLabels.length ? painTypeLabels : [legacyPainTypeLabel],
     pain_pattern: row.pain_pattern ?? "continuous",
     pulse_duration_seconds: row.pulse_duration_seconds,
     face_areas: derivedFaceAreas,
@@ -132,6 +145,11 @@ export async function getEpisodesForUser(userId: string, filters: DashboardFilte
         ),
         episode_medications (
           medication_options (
+            label
+          )
+        ),
+        episode_pain_types (
+          pain_type_options (
             label
           )
         )
