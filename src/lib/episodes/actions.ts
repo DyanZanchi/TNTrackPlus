@@ -101,8 +101,8 @@ export async function createEpisodeAction(
       pain_type: result.data.pain_type,
       pain_pattern: result.data.pain_pattern,
       pulse_duration_seconds: result.data.pulse_duration_seconds,
-      face_area:
-        result.data.face_areas.length === 1 ? result.data.face_areas[0] : LEGACY_MULTIPLE_AREAS,
+      // Legacy summary column — divisions live in episode_face_areas / episode_face_points.
+      face_area: LEGACY_MULTIPLE_AREAS,
       severity: result.data.severity,
       duration_minutes: Math.max(1, Math.ceil(result.data.duration_hms / 60)),
       duration_seconds: result.data.duration_hms,
