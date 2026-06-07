@@ -75,7 +75,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const medicationData = buildMedicationCounts(episodes);
 
   const logCtaLabel =
-    summary.totalEpisodes === 0 ? "+ Log your first entry" : "+ Log new entry";
+    summary.totalEpisodes === 0 ? "Log your first entry" : "Log new entry";
 
   return (
     <div className="space-y-8">
