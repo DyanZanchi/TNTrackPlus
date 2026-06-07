@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { FACE_AREA_OPTIONS, PAIN_PATTERN_OPTIONS } from "@/lib/constants/episode-options";
+import {
+  FACE_AREA_OPTIONS,
+  NO_MEDICATION_OPTION_ID,
+  PAIN_PATTERN_OPTIONS,
+} from "@/lib/constants/episode-options";
 import { getUniqueDivisions } from "@/lib/face-map/classify";
 import { FACE_LOCATION_KEYS } from "@/lib/face-map/types";
 
@@ -80,6 +84,9 @@ export const episodeSchema = z
     trigger_ids: z
       .array(z.string().uuid("Select a valid trigger option."))
       .min(1, "Select at least one trigger."),
+    medication_within_24h: z.enum(["yes", "no"], {
+      error: "Indicate whether you took medication within the past 24 hours.",
+    }),
     medication_ids: z.array(z.string().uuid("Select a valid medication option.")).default([]),
     notes: z.preprocess(
       nullishToString,
@@ -140,6 +147,22 @@ export const episodeSchema = z
       }
     }
 
+    if (values.medication_within_24h === "yes") {
+      if (!values.medication_ids.length) {
+        context.addIssue({
+          code: "custom",
+          message: "Select at least one medication taken in the past 24 hours.",
+          path: ["medication_ids"],
+        });
+      } else if (values.medication_ids.includes(NO_MEDICATION_OPTION_ID)) {
+        context.addIssue({
+          code: "custom",
+          message: "Select the medications you took, or choose No if you did not take any.",
+          path: ["medication_ids"],
+        });
+      }
+    }
+
     if (values.treatment_history_changed) {
       if (!values.treatment_change_date) {
         context.addIssue({
@@ -173,6 +196,10 @@ export const episodeSchema = z
       face_points: facePoints,
       face_areas: getUniqueDivisions(facePoints),
       pulse_duration_seconds: pulseDurationSeconds,
+      medication_ids:
+        values.medication_within_24h === "no"
+          ? [NO_MEDICATION_OPTION_ID]
+          : values.medication_ids,
       treatment_change_date: values.treatment_history_changed
         ? values.treatment_change_date
         : null,

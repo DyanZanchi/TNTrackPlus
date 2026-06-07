@@ -14,6 +14,7 @@ const baseEpisode = {
   duration_hms: "00:15:30",
   onset_at: "2026-04-11T14:30",
   trigger_ids: ["11111111-1111-4111-8111-000000000001"],
+  medication_within_24h: "yes",
   medication_ids: ["22222222-2222-4222-8222-000000000002"],
   notes: "Pain started after lunch.",
   treatment_history_changed: "no",
@@ -83,6 +84,7 @@ describe("episodeSchema", () => {
       ...baseEpisode,
       pain_pattern: "continuous",
       trigger_ids: [],
+      medication_within_24h: "no",
       medication_ids: [],
       notes: "",
     });
@@ -133,6 +135,36 @@ describe("episodeSchema", () => {
 
     if (result.success) {
       expect(result.data.treatment_change_date).toBe("2026-03-15");
+    }
+  });
+
+  it("records no medication when none were taken in the past 24 hours", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      medication_within_24h: "no",
+      medication_ids: [],
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.medication_ids).toEqual(["22222222-2222-4222-8222-000000000001"]);
+    }
+  });
+
+  it("requires medication selections when medication was taken in the past 24 hours", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      medication_within_24h: "yes",
+      medication_ids: [],
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "Select at least one medication taken in the past 24 hours.",
+      );
     }
   });
 

@@ -34,6 +34,7 @@ export async function createEpisodeAction(
     duration_hms: formData.get("duration_hms"),
     onset_at: formData.get("onset_at"),
     trigger_ids: formData.getAll("trigger_ids"),
+    medication_within_24h: formData.get("medication_within_24h"),
     medication_ids: formData.getAll("medication_ids"),
     notes: formData.get("notes"),
     treatment_history_changed: formData.get("treatment_history_changed"),

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
   formatPainTypeLabels,
+  NO_MEDICATION_OPTION_ID,
   PAIN_PATTERN_LABELS,
   PAIN_PATTERN_OPTIONS,
 } from "@/lib/constants/episode-options";
@@ -92,7 +93,11 @@ export function EpisodeForm({
   const [facePoints, setFacePoints] = useState<FaceMapPoint[]>([]);
   const [selectedTriggerIds, setSelectedTriggerIds] = useState<string[]>([]);
   const [selectedMedicationIds, setSelectedMedicationIds] = useState<string[]>([]);
+  const [medicationWithin24h, setMedicationWithin24h] = useState<"yes" | "no" | "">("");
   const [treatmentHistoryChanged, setTreatmentHistoryChanged] = useState<"yes" | "no" | "">("");
+  const selectableMedicationOptions = medicationOptions.filter(
+    (option) => option.id !== NO_MEDICATION_OPTION_ID,
+  );
   const [selectedPainTypeIds, setSelectedPainTypeIds] = useState(profile.pain_type_option_ids);
   const profilePainTypeLabels = resolvePainTypeLabels(
     profile.pain_type_option_ids,
@@ -221,18 +226,53 @@ export function EpisodeForm({
           tileIcon={IconTrigger}
         />
 
-        <InlineTaxonomyPicker
-          name="medication_ids"
-          title="Medications taken"
-          singularLabel="medication"
-          options={medicationOptions}
-          selectedIds={selectedMedicationIds}
-          onSelectionChange={setSelectedMedicationIds}
-          addAction={addMedicationAction}
-          hideAction={hideMedicationAction}
-          helperText='Select all that apply. If you choose "No medication", leave other medications unchecked.'
-          demoMode={demoMode}
-        />
+        <fieldset className="space-y-3">
+          <legend className={labelClass}>Medication in the past 24 hours</legend>
+          <p className={hintClass}>
+            Did you take any medication for this condition within the past 24 hours?
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(["no", "yes"] as const).map((option) => (
+              <label
+                key={option}
+                className={cn(
+                  selectionTileClass,
+                  medicationWithin24h === option && selectionTileSelectedClass,
+                )}
+              >
+                <input
+                  type="radio"
+                  name="medication_within_24h"
+                  value={option}
+                  required
+                  checked={medicationWithin24h === option}
+                  onChange={() => {
+                    setMedicationWithin24h(option);
+                    if (option === "no") {
+                      setSelectedMedicationIds([]);
+                    }
+                  }}
+                  className="sr-only"
+                />
+                {option === "yes" ? "Yes" : "No"}
+              </label>
+            ))}
+          </div>
+          {medicationWithin24h === "yes" ? (
+            <InlineTaxonomyPicker
+              name="medication_ids"
+              title="Which medications?"
+              singularLabel="medication"
+              options={selectableMedicationOptions}
+              selectedIds={selectedMedicationIds}
+              onSelectionChange={setSelectedMedicationIds}
+              addAction={addMedicationAction}
+              hideAction={hideMedicationAction}
+              helperText="Select all medications taken in the past 24 hours."
+              demoMode={demoMode}
+            />
+          ) : null}
+        </fieldset>
       </section>
 
       <section className="space-y-3">
