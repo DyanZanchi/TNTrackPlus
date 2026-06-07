@@ -3,6 +3,7 @@ import { EpisodeForm } from "@/components/episode-form";
 import { Card } from "@/components/ui/card";
 import { DEMO_PROFILE } from "@/lib/demo/profile";
 import { createEpisodeAction } from "@/lib/episodes/actions";
+import { isProfileComplete } from "@/lib/profile/is-complete";
 import { getProfileForUser } from "@/lib/profile/queries";
 import { isAuthBypassed } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -45,6 +46,10 @@ export default async function NewEpisodePage() {
     triggerOptions = allTriggers;
     medicationOptions = allMedications;
     painTypeOptions = allPainTypes;
+    if (!isProfileComplete(userProfile)) {
+      redirect("/onboarding");
+    }
+
     profile = userProfile;
   }
 

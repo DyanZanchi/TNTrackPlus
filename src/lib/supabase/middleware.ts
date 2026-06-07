@@ -1,8 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { isUserProfileComplete, ONBOARDING_PATH } from "@/lib/profile/is-complete";
 import { getSupabaseEnv, hasSupabaseEnv, isAuthBypassed } from "@/lib/supabase/env";
 
-const PROTECTED_PATHS = ["/dashboard", "/episodes", "/settings"];
+const PROTECTED_PATHS = ["/dashboard", "/episodes", "/settings", ONBOARDING_PATH];
+const PROFILE_GATE_PATHS = ["/dashboard", "/episodes"];
 
 export async function updateSession(request: NextRequest) {
   if (isAuthBypassed() || !hasSupabaseEnv()) {
@@ -44,10 +46,27 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup")) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
-    return NextResponse.redirect(dashboardUrl);
+  if (user) {
+    const pathname = request.nextUrl.pathname;
+    const profileComplete = await isUserProfileComplete(supabase, user.id);
+    const isProfileGatePath = PROFILE_GATE_PATHS.some((path) => pathname.startsWith(path));
+    const isSettingsPath = pathname.startsWith("/settings");
+    const isOnboardingPath = pathname.startsWith(ONBOARDING_PATH);
+    const isAuthEntryPath = pathname === "/login" || pathname === "/signup";
+
+    if (!profileComplete) {
+      if (isProfileGatePath || isSettingsPath || isAuthEntryPath) {
+        const onboardingUrl = request.nextUrl.clone();
+        onboardingUrl.pathname = ONBOARDING_PATH;
+        onboardingUrl.search = "";
+        return NextResponse.redirect(onboardingUrl);
+      }
+    } else if (isOnboardingPath || isAuthEntryPath) {
+      const dashboardUrl = request.nextUrl.clone();
+      dashboardUrl.pathname = "/dashboard";
+      dashboardUrl.search = "";
+      return NextResponse.redirect(dashboardUrl);
+    }
   }
 
   return response;

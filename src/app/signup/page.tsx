@@ -12,7 +12,7 @@ export default function SignupPage() {
         description={
           demoMode
             ? "Demo mode is enabled. You can preview the app without setting up a real account."
-            : "Use email and password to create your account. We will send you a confirmation email before your dashboard is activated."
+            : "Use email and password to create your account. After confirming your email, you will set up your patient profile before logging your first entry."
         }
         submitLabel={demoMode ? "Continue to demo" : "Create account"}
         alternateHref="/login"

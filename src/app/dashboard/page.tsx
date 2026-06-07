@@ -35,6 +35,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const params = searchParams ? await searchParams : {};
   const created = params.created === "1";
   const treatmentChanged = params.treatment_changed === "1";
+  const welcome = params.welcome === "1";
   const demoMode = isAuthBypassed();
 
   if (!demoMode && !hasSupabaseEnv()) {
@@ -91,6 +92,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <ExportButton filters={filters} />
         </div>
       </div>
+
+      {welcome ? (
+        <p className={alertSuccessClass}>
+          Profile saved. You can now log your first facial pain entry.
+          {demoMode ? " Demo mode does not persist these changes." : ""}
+        </p>
+      ) : null}
 
       {created ? (
         <p className={alertSuccessClass}>

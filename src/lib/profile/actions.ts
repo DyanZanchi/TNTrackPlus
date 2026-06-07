@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { savePatientPainTypes } from "@/lib/profile/save-pain-types";
 import { savePatientTreatments } from "@/lib/profile/save-treatments";
 import { resolveSelectedTaxonomyOptions } from "@/lib/taxonomy/server";
+import { getProfileRedirectPath } from "@/lib/profile/is-complete";
 import { parseProfileFormData } from "@/lib/validation/profile";
 
 export type ProfileActionState = {
@@ -25,7 +26,9 @@ export async function saveProfileAction(
   }
 
   if (isAuthBypassed()) {
-    redirect("/settings?saved=1&demo=1");
+    const redirectTo = getProfileRedirectPath(formData);
+    const separator = redirectTo.includes("?") ? "&" : "?";
+    redirect(`${redirectTo}${separator}demo=1`);
   }
 
   if (!hasSupabaseEnv()) {
@@ -98,5 +101,5 @@ export async function saveProfileAction(
     return { error: revisionError.message };
   }
 
-  redirect("/settings?saved=1");
+  redirect(getProfileRedirectPath(formData));
 }

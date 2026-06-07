@@ -22,6 +22,8 @@ type ProfileFormProps = {
   profile: PatientProfile;
   painTypeOptions: TaxonomyOption[];
   demoMode: boolean;
+  variant?: "settings" | "onboarding";
+  redirectTo?: string;
   addPainTypeAction: (
     previousState: TaxonomyActionState | undefined,
     formData: FormData,
@@ -39,6 +41,8 @@ export function ProfileForm({
   profile,
   painTypeOptions,
   demoMode,
+  variant = "settings",
+  redirectTo,
   addPainTypeAction,
   hidePainTypeAction,
   action,
@@ -59,6 +63,7 @@ export function ProfileForm({
 
   return (
     <form action={formAction} className="space-y-8">
+      {redirectTo ? <input type="hidden" name="redirect_to" value={redirectTo} /> : null}
       {state.error ? <p className={alertErrorClass}>{state.error}</p> : null}
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -144,10 +149,15 @@ export function ProfileForm({
       ) : null}
 
       <div className="flex flex-wrap gap-3">
-        <SubmitButton label="Save profile" pendingLabel="Saving profile..." />
-        <Link href="/dashboard" className={btnSecondaryClass}>
-          Back to dashboard
-        </Link>
+        <SubmitButton
+          label={variant === "onboarding" ? "Save and continue" : "Save profile"}
+          pendingLabel={variant === "onboarding" ? "Continuing..." : "Saving profile..."}
+        />
+        {variant === "settings" ? (
+          <Link href="/dashboard" className={btnSecondaryClass}>
+            Back to dashboard
+          </Link>
+        ) : null}
       </div>
     </form>
   );
