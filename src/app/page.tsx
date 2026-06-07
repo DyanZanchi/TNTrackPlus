@@ -3,20 +3,13 @@ import { Card } from "@/components/ui/card";
 import { btnPrimaryClass, btnSecondaryClass } from "@/lib/design/ui-classes";
 import { cn } from "@/lib/utils";
 
-const features = [
-  "Structured pain episode logging",
-  "Monthly and rolling trend summaries",
-  "Trigger, medication, and face-area breakdowns",
-  "CSV export for sharing with care teams",
-];
-
 export default function HomePage() {
   return (
     <div className="space-y-12">
-      <section className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
+      <section className="space-y-6">
         <div className="space-y-6">
           <span className="inline-flex rounded-full bg-[color:var(--accent)] px-4 py-1.5 text-sm font-semibold text-[color:var(--primary)]">
-            Trigeminal neuralgia symptom tracking
+            Facial Pain Episode Tracking
           </span>
           <div className="space-y-4">
             <h1 className="font-display max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
@@ -37,18 +30,6 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-
-        <Card elevated className="space-y-4">
-          <h2 className="font-display text-xl font-bold">What the MVP includes</h2>
-          <ul className="space-y-3 text-sm text-[color:var(--muted)]">
-            {features.map((feature) => (
-              <li key={feature} className="flex gap-3">
-                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[color:var(--primary)]" />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
