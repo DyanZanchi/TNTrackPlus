@@ -35,6 +35,20 @@ describe("episodeSchema", () => {
     }
   });
 
+  it("accepts continuous pain when pulse duration is omitted from the form", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_pattern: "continuous",
+      pulse_duration_hms: null,
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.pulse_duration_seconds).toBeNull();
+    }
+  });
+
   it("accepts episodic pain with a pulse length", () => {
     const result = episodeSchema.safeParse({
       ...baseEpisode,

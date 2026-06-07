@@ -39,6 +39,10 @@ const facePointSchema = z.object({
   label: z.string().min(1),
 });
 
+function nullishToString(value: unknown) {
+  return value == null ? "" : String(value);
+}
+
 function parseFacePoints(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value.trim()) {
     return [];
@@ -60,11 +64,7 @@ export const episodeSchema = z
     pain_pattern: z.enum(PAIN_PATTERN_OPTIONS, {
       error: "Select whether the pain was continuous or episodic.",
     }),
-    pulse_duration_hms: z
-      .string()
-      .trim()
-      .optional()
-      .transform((value) => value ?? ""),
+    pulse_duration_hms: z.preprocess(nullishToString, z.string().trim()),
     face_points: z.preprocess(
       (value) => parseFacePoints(value as FormDataEntryValue | null),
       z
@@ -88,12 +88,10 @@ export const episodeSchema = z
       .array(z.string().uuid("Select a valid trigger option."))
       .min(1, "Select at least one trigger."),
     medication_ids: z.array(z.string().uuid("Select a valid medication option.")).default([]),
-    notes: z
-      .string()
-      .trim()
-      .max(500, "Notes must be 500 characters or less.")
-      .optional()
-      .transform((value) => (value ? value : "")),
+    notes: z.preprocess(
+      nullishToString,
+      z.string().trim().max(500, "Notes must be 500 characters or less."),
+    ),
     treatment_history_changed: z
       .enum(["yes", "no"], {
         error: "Indicate whether your treatment history has changed since your last entry.",
