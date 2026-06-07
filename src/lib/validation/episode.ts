@@ -5,6 +5,7 @@ import {
   PAIN_TYPE_OPTIONS,
 } from "@/lib/constants/episode-options";
 import { getUniqueDivisions } from "@/lib/face-map/classify";
+import { FACE_LOCATION_KEYS } from "@/lib/face-map/types";
 
 const durationPattern = /^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
 
@@ -34,7 +35,7 @@ const facePointSchema = z.object({
   x: z.coerce.number().min(0).max(1000),
   y: z.coerce.number().min(0).max(1000),
   division: z.enum(FACE_AREA_OPTIONS),
-  location: z.string().min(1),
+  location: z.enum(FACE_LOCATION_KEYS),
   label: z.string().min(1),
 });
 
