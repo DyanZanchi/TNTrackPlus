@@ -260,9 +260,23 @@ export function EpisodeForm({
             ))}
           </div>
           {treatmentHistoryChanged === "yes" ? (
-            <div className="space-y-3 rounded-3xl border border-[color:var(--border)] bg-[color:var(--accent)]/60 p-4">
+            <div className="space-y-4 rounded-3xl border border-[color:var(--border)] bg-[color:var(--accent)]/60 p-4">
+              <label className="block space-y-2">
+                <span className={labelClass}>When did this change occur?</span>
+                <input
+                  type="date"
+                  name="treatment_change_date"
+                  required
+                  max={new Date().toISOString().slice(0, 10)}
+                  className={cn(inputClass, "max-w-xs")}
+                />
+                <p className={hintClass}>
+                  For example, the date of a new procedure or when a therapy started.
+                </p>
+              </label>
               <p className="text-sm text-[color:var(--muted)]">
-                Update your surgeries, procedures, and other therapies below.
+                Update your surgeries, procedures, and other therapies below. This update will be
+                saved with this entry and applied to your overall profile.
               </p>
               <TreatmentFields
                 priorTreatments={priorTreatments}

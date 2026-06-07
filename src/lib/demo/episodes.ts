@@ -19,6 +19,9 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
     trigger_labels: ["Cold air", "Touching face"],
     medication_labels: ["Carbamazepine"],
     notes: "Started after going outside in the wind.",
+    treatment_history_changed: false,
+    treatment_change_date: null,
+    treatment_history_snapshot: null,
     created_at: "2026-02-14T15:40:00.000Z",
   },
   {
@@ -37,6 +40,9 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
     trigger_labels: ["Brushing teeth", "Flossing"],
     medication_labels: ["Oxcarbazepine", "Ibuprofen"],
     notes: "Short but sharp pain while brushing teeth.",
+    treatment_history_changed: false,
+    treatment_change_date: null,
+    treatment_history_snapshot: null,
     created_at: "2026-03-03T08:20:00.000Z",
   },
   {
@@ -55,6 +61,9 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
     trigger_labels: ["Stress"],
     medication_labels: ["Gabapentin"],
     notes: "Felt more intense after a long day.",
+    treatment_history_changed: false,
+    treatment_change_date: null,
+    treatment_history_snapshot: null,
     created_at: "2026-03-21T19:50:00.000Z",
   },
   {
@@ -73,6 +82,14 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
     trigger_labels: ["Talking", "Chewing"],
     medication_labels: ["Baclofen", "Acetaminophen"],
     notes: "Pain spiked during a longer conversation.",
+    treatment_history_changed: true,
+    treatment_change_date: "2026-03-15",
+    treatment_history_snapshot: {
+      prior_treatments: [{ treatment_type: "mvd", other_label: null }],
+      other_therapies: [{ therapy_type: "acupuncture", other_label: null }],
+      added_prior_treatments: [{ treatment_type: "mvd", other_label: null }],
+      added_other_therapies: [{ therapy_type: "acupuncture", other_label: null }],
+    },
     created_at: "2026-04-05T12:20:00.000Z",
   },
   {
@@ -93,6 +110,9 @@ export const DEMO_EPISODES: EpisodeRecord[] = [
     trigger_labels: ["Spontaneous / no clear trigger"],
     medication_labels: ["No medication"],
     notes: "No obvious trigger that morning.",
+    treatment_history_changed: false,
+    treatment_change_date: null,
+    treatment_history_snapshot: null,
     created_at: "2026-04-18T07:35:00.000Z",
   },
 ];

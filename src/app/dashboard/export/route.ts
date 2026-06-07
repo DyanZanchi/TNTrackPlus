@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { NextResponse } from "next/server";
 import { PAIN_TYPE_LABELS, formatFaceAreaLabels } from "@/lib/constants/episode-options";
 import { formatPainPatternDescription } from "@/lib/episodes/pain-pattern";
+import { formatTreatmentHistoryChange } from "@/lib/profile/format-treatment-change";
 import { formatFacePointLabels } from "@/lib/face-map/format";
 import { buildFilterQuery } from "@/lib/analytics/episodes";
 import { DEMO_EPISODES } from "@/lib/demo/episodes";
@@ -53,6 +54,14 @@ function toCsv(episodes: EpisodeRecord[]) {
     episode.trigger_labels.join("; "),
     episode.medication_labels.join("; "),
     (episode.notes ?? "").replaceAll('"', '""'),
+    episode.treatment_history_changed ? "yes" : "no",
+    episode.treatment_change_date ?? "",
+    episode.treatment_history_changed
+      ? formatTreatmentHistoryChange(
+          episode.treatment_history_snapshot,
+          episode.treatment_change_date,
+        )
+      : "",
   ]);
 
   return [header, ...rows]

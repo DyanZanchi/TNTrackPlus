@@ -1,5 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { DashboardFilters, EpisodeRecord, FaceAreaOption } from "@/lib/types/episodes";
+import type {
+  DashboardFilters,
+  EpisodeRecord,
+  EpisodeTreatmentHistorySnapshot,
+  FaceAreaOption,
+} from "@/lib/types/episodes";
 import { buildFilterQuery } from "@/lib/analytics/episodes";
 import { isEpisodeFaceArea } from "@/lib/constants/episode-options";
 import type { FaceLocationKey, FaceMapPoint } from "@/lib/face-map/types";
@@ -29,6 +34,9 @@ type EpisodeQueryRow = {
   duration_seconds: number;
   onset_at: string;
   notes: string | null;
+  treatment_history_changed: boolean | null;
+  treatment_change_date: string | null;
+  treatment_history_snapshot: EpisodeTreatmentHistorySnapshot | null;
   created_at: string;
   episode_face_areas?: EpisodeRelationRow[] | null;
   episode_face_points?: EpisodeFacePointRow[] | null;
@@ -76,6 +84,9 @@ function mapEpisodeRow(row: EpisodeQueryRow): EpisodeRecord {
       .map((item) => item.medication_options?.label)
       .filter((label): label is string => Boolean(label)),
     notes: row.notes,
+    treatment_history_changed: row.treatment_history_changed ?? false,
+    treatment_change_date: row.treatment_change_date,
+    treatment_history_snapshot: row.treatment_history_snapshot,
     created_at: row.created_at,
   };
 }
@@ -98,6 +109,9 @@ export async function getEpisodesForUser(userId: string, filters: DashboardFilte
         duration_seconds,
         onset_at,
         notes,
+        treatment_history_changed,
+        treatment_change_date,
+        treatment_history_snapshot,
         created_at,
         episode_face_areas (
           face_area_options (

@@ -2,8 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { FACE_AREA_OPTION_IDS, LEGACY_MULTIPLE_AREAS } from "@/lib/constants/episode-options";
+import {
+  diffAddedOtherTherapies,
+  diffAddedPriorTreatments,
+} from "@/lib/profile/treatment-diff";
 import { getProfileForUser } from "@/lib/profile/queries";
 import { savePatientTreatments } from "@/lib/profile/save-treatments";
+import type { EpisodeTreatmentHistorySnapshot } from "@/lib/types/episodes";
 import { parseTreatmentFormData, type TreatmentFieldsData } from "@/lib/validation/treatment";
 import { isAuthBypassed, hasSupabaseEnv } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -32,6 +37,7 @@ export async function createEpisodeAction(
     medication_ids: formData.getAll("medication_ids"),
     notes: formData.get("notes"),
     treatment_history_changed: formData.get("treatment_history_changed"),
+    treatment_change_date: formData.get("treatment_change_date"),
   };
 
   const result = episodeSchema.safeParse(values);
@@ -94,6 +100,25 @@ export async function createEpisodeAction(
     return { error: "One or more selected medications are unavailable." };
   }
 
+  let treatmentHistorySnapshot: EpisodeTreatmentHistorySnapshot | null = null;
+
+  if (result.data.treatment_history_changed && treatmentUpdate) {
+    const previousProfile = await getProfileForUser(user.id);
+
+    treatmentHistorySnapshot = {
+      prior_treatments: treatmentUpdate.prior_treatments,
+      other_therapies: treatmentUpdate.other_therapies,
+      added_prior_treatments: diffAddedPriorTreatments(
+        previousProfile.prior_treatments,
+        treatmentUpdate.prior_treatments,
+      ),
+      added_other_therapies: diffAddedOtherTherapies(
+        previousProfile.other_therapies,
+        treatmentUpdate.other_therapies,
+      ),
+    };
+  }
+
   const { data: episode, error } = await supabase
     .from("episodes")
     .insert({
@@ -109,6 +134,8 @@ export async function createEpisodeAction(
       onset_at: result.data.onset_at,
       notes: result.data.notes || null,
       treatment_history_changed: result.data.treatment_history_changed,
+      treatment_change_date: result.data.treatment_change_date,
+      treatment_history_snapshot: treatmentHistorySnapshot,
       trigger_name: null,
       medication_taken: null,
     })
@@ -188,6 +215,8 @@ export async function createEpisodeAction(
 
     const { error: revisionError } = await supabase.from("patient_profile_revisions").insert({
       user_id: user.id,
+      episode_id: episodeId,
+      change_date: result.data.treatment_change_date,
       age: profile.age,
       gender: profile.gender,
       gender_other: profile.gender_other,

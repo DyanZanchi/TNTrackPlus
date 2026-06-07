@@ -97,6 +97,7 @@ export const episodeSchema = z
         error: "Indicate whether your treatment history has changed since your last entry.",
       })
       .transform((value) => value === "yes"),
+    treatment_change_date: z.preprocess(nullishToString, z.string().trim()),
   })
   .superRefine((values, context) => {
     if (values.face_points === null) {
@@ -145,6 +146,27 @@ export const episodeSchema = z
         });
       }
     }
+
+    if (values.treatment_history_changed) {
+      if (!values.treatment_change_date) {
+        context.addIssue({
+          code: "custom",
+          message: "Enter when the treatment history changed.",
+          path: ["treatment_change_date"],
+        });
+        return;
+      }
+
+      const changeDate = new Date(`${values.treatment_change_date}T12:00:00`);
+
+      if (Number.isNaN(changeDate.getTime())) {
+        context.addIssue({
+          code: "custom",
+          message: "Enter a valid change date.",
+          path: ["treatment_change_date"],
+        });
+      }
+    }
   })
   .transform((values) => {
     const facePoints = values.face_points === null ? [] : values.face_points;
@@ -158,6 +180,9 @@ export const episodeSchema = z
       face_points: facePoints,
       face_areas: getUniqueDivisions(facePoints),
       pulse_duration_seconds: pulseDurationSeconds,
+      treatment_change_date: values.treatment_history_changed
+        ? values.treatment_change_date
+        : null,
     };
   });
 

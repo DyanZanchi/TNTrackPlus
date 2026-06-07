@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { PAIN_TYPE_LABELS, formatFaceAreaLabels } from "@/lib/constants/episode-options";
 import { formatPainPatternDescription } from "@/lib/episodes/pain-pattern";
+import { formatTreatmentHistoryChange } from "@/lib/profile/format-treatment-change";
 import { formatFacePointSummary } from "@/lib/face-map/format";
 import type { EpisodeRecord } from "@/lib/types/episodes";
 import { formatDurationHms, formatDurationSeconds } from "@/lib/utils";
@@ -33,6 +34,7 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
                 <th className="px-2 py-3 font-medium">Duration</th>
                 <th className="px-2 py-3 font-medium">Trigger</th>
                 <th className="px-2 py-3 font-medium">Medication</th>
+                <th className="px-2 py-3 font-medium">Treatment update</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[color:var(--border)]">
@@ -57,6 +59,14 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
                   </td>
                   <td className="px-2 py-3">{episode.trigger_labels.join(", ")}</td>
                   <td className="px-2 py-3">{episode.medication_labels.join(", ") || "None recorded"}</td>
+                  <td className="px-2 py-3">
+                    {episode.treatment_history_changed
+                      ? formatTreatmentHistoryChange(
+                          episode.treatment_history_snapshot,
+                          episode.treatment_change_date,
+                        ) || "Updated"
+                      : "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>

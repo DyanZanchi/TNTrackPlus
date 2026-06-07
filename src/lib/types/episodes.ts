@@ -7,6 +7,14 @@ import {
   PAIN_TYPE_OPTIONS,
 } from "@/lib/constants/episode-options";
 import type { FaceMapPoint } from "@/lib/face-map/types";
+import type { OtherTherapyEntry, PriorTreatmentEntry } from "@/lib/types/profile";
+
+export type EpisodeTreatmentHistorySnapshot = {
+  prior_treatments: PriorTreatmentEntry[];
+  other_therapies: OtherTherapyEntry[];
+  added_prior_treatments: PriorTreatmentEntry[];
+  added_other_therapies: OtherTherapyEntry[];
+};
 
 export type PainTypeOption = (typeof PAIN_TYPE_OPTIONS)[number];
 export type PainPatternOption = (typeof PAIN_PATTERN_OPTIONS)[number];
@@ -38,6 +46,9 @@ export type EpisodeRecord = {
   trigger_labels: string[];
   medication_labels: string[];
   notes: string | null;
+  treatment_history_changed: boolean;
+  treatment_change_date: string | null;
+  treatment_history_snapshot: EpisodeTreatmentHistorySnapshot | null;
   created_at: string;
 };
 

@@ -20,6 +20,9 @@ const episodes: EpisodeRecord[] = [
     trigger_labels: ["Chewing", "Cold air"],
     medication_labels: ["Carbamazepine"],
     notes: null,
+    treatment_history_changed: false,
+    treatment_change_date: null,
+    treatment_history_snapshot: null,
     created_at: "2026-03-10T14:05:00.000Z",
   },
   {
@@ -36,6 +39,9 @@ const episodes: EpisodeRecord[] = [
     trigger_labels: ["Chewing", "Flossing"],
     medication_labels: ["No medication"],
     notes: null,
+    treatment_history_changed: false,
+    treatment_change_date: null,
+    treatment_history_snapshot: null,
     created_at: "2026-03-22T09:05:00.000Z",
   },
   {
@@ -52,6 +58,9 @@ const episodes: EpisodeRecord[] = [
     trigger_labels: ["Cold air"],
     medication_labels: ["Baclofen", "Ibuprofen"],
     notes: null,
+    treatment_history_changed: false,
+    treatment_change_date: null,
+    treatment_history_snapshot: null,
     created_at: "2026-04-05T20:05:00.000Z",
   },
 ];

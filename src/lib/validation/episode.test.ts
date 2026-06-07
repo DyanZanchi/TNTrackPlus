@@ -18,6 +18,7 @@ const baseEpisode = {
   medication_ids: ["22222222-2222-4222-8222-000000000002"],
   notes: "Pain started after lunch.",
   treatment_history_changed: "no",
+  treatment_change_date: "",
 };
 
 describe("episodeSchema", () => {
@@ -124,6 +125,34 @@ describe("episodeSchema", () => {
 
     if (!result.success) {
       expect(result.error.issues[0]?.message).toBe("Episode length must use hh:mm:ss format.");
+    }
+  });
+
+  it("requires a treatment change date when treatment history changed", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      treatment_history_changed: "yes",
+      treatment_change_date: "",
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Enter when the treatment history changed.");
+    }
+  });
+
+  it("accepts treatment history changes with a change date", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      treatment_history_changed: "yes",
+      treatment_change_date: "2026-03-15",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.treatment_change_date).toBe("2026-03-15");
     }
   });
 
