@@ -22,6 +22,7 @@ type TreatmentFieldsProps = {
   onOtherTherapiesChange: (next: OtherTherapyOption[]) => void;
   priorTreatmentOther: string;
   otherTherapyOther: string;
+  promptClass?: string;
 };
 
 function isSelected<T extends string>(values: T[], value: T) {
@@ -39,11 +40,12 @@ export function TreatmentFields({
   onOtherTherapiesChange,
   priorTreatmentOther,
   otherTherapyOther,
+  promptClass = labelClass,
 }: TreatmentFieldsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <fieldset className="block space-y-2 md:col-span-2">
-        <legend className={labelClass}>Prior surgeries / procedures</legend>
+        <legend className={promptClass}>Prior surgeries / procedures</legend>
         <div className="grid gap-2 sm:grid-cols-2">
           {PRIOR_TREATMENT_OPTIONS.map((option) => (
             <label
@@ -69,7 +71,7 @@ export function TreatmentFields({
 
       {priorTreatments.includes("other") ? (
         <label className="block space-y-2 md:col-span-2">
-          <span className={labelClass}>Other prior treatment</span>
+          <span className={promptClass}>Other prior treatment</span>
           <input
             type="text"
             name="prior_treatment_other"
@@ -84,7 +86,7 @@ export function TreatmentFields({
       )}
 
       <fieldset className="block space-y-2 md:col-span-2">
-        <legend className={labelClass}>Other therapies</legend>
+        <legend className={promptClass}>Other therapies</legend>
         <div className="grid gap-2 sm:grid-cols-2">
           {OTHER_THERAPY_OPTIONS.map((option) => (
             <label
@@ -110,7 +112,7 @@ export function TreatmentFields({
 
       {otherTherapies.includes("other") ? (
         <label className="block space-y-2 md:col-span-2">
-          <span className={labelClass}>Other therapy</span>
+          <span className={promptClass}>Other therapy</span>
           <input
             type="text"
             name="other_therapy_other"

@@ -32,6 +32,7 @@ type InlineTaxonomyPickerProps = {
   ) => Promise<TaxonomyActionState>;
   hideAction: (formData: FormData) => Promise<TaxonomyActionState>;
   helperText?: string;
+  titleClass?: string;
   demoMode: boolean;
   grid?: boolean;
   tileIcon?: React.ComponentType<IconProps>;
@@ -61,6 +62,7 @@ export function InlineTaxonomyPicker({
   addAction,
   hideAction,
   helperText,
+  titleClass = labelClass,
   demoMode,
   grid = false,
   tileIcon: TileIcon = IconTag,
@@ -135,7 +137,7 @@ export function InlineTaxonomyPicker({
 
   return (
     <div className="space-y-3">
-      <span className={labelClass}>{title}</span>
+      <span className={titleClass}>{title}</span>
 
       <div className={cn(grid ? "grid gap-2 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-2")}>
         {options.map((option) => {

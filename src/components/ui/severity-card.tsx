@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { cardClass } from "@/lib/design/ui-classes";
+import { cardClass, surveyPromptClass } from "@/lib/design/ui-classes";
 import { getSeverityDisplay, getSeveritySliderPercent } from "@/lib/design/severity";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,7 @@ export function SeverityCard({ severity, onChange, name = "severity" }: Severity
 
   return (
     <div className={cn(cardClass, "space-y-5 p-6")}>
-      <p className="text-sm font-semibold text-[color:var(--muted)]">How are you feeling?</p>
+      <p className={surveyPromptClass}>How did the pain make you feel?</p>
 
       <div className="space-y-1">
         <div className="flex items-baseline gap-1">

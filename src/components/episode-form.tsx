@@ -25,7 +25,7 @@ import {
   hintClass,
   inputClass,
   inputMonoClass,
-  labelClass,
+  surveyPromptClass,
   selectionTileClass,
   selectionTileSelectedClass,
 } from "@/lib/design/ui-classes";
@@ -121,7 +121,7 @@ export function EpisodeForm({
 
       <section className="space-y-4">
         <label className="block space-y-2">
-          <span className={labelClass}>Time of attack</span>
+          <span className={surveyPromptClass}>Time of attack</span>
           <input
             type="datetime-local"
             name="onset_at"
@@ -136,7 +136,7 @@ export function EpisodeForm({
 
       <section className="space-y-4">
         <div className="space-y-2">
-          <span className={labelClass}>Pain location on face</span>
+          <span className={surveyPromptClass}>Pain location on face</span>
           <FaceMapSelector points={facePoints} onChange={setFacePoints} />
           <input type="hidden" name="face_points" value={JSON.stringify(facePoints)} />
         </div>
@@ -144,7 +144,7 @@ export function EpisodeForm({
 
       <section className="space-y-4">
         <fieldset className="space-y-3">
-          <legend className={labelClass}>Pain pattern</legend>
+          <legend className={surveyPromptClass}>Pain pattern</legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {PAIN_PATTERN_OPTIONS.map((option) => (
               <label
@@ -173,7 +173,7 @@ export function EpisodeForm({
         <div className="grid gap-4 sm:grid-cols-2">
           {painPattern === "episodic_pulsing" ? (
             <label className="block space-y-2 sm:col-span-2">
-              <span className={labelClass}>Length of each pulse</span>
+              <span className={surveyPromptClass}>Length of each pulse</span>
               <input
                 type="text"
                 name="pulse_duration_hms"
@@ -192,7 +192,7 @@ export function EpisodeForm({
           ) : null}
 
           <label className="block space-y-2">
-            <span className={labelClass}>Episode length</span>
+            <span className={surveyPromptClass}>Episode length</span>
             <input
               type="text"
               name="duration_hms"
@@ -215,6 +215,7 @@ export function EpisodeForm({
         <InlineTaxonomyPicker
           name="trigger_ids"
           title="What prompted the attack?"
+          titleClass={surveyPromptClass}
           singularLabel="trigger"
           options={triggerOptions}
           selectedIds={selectedTriggerIds}
@@ -227,10 +228,9 @@ export function EpisodeForm({
         />
 
         <fieldset className="space-y-3">
-          <legend className={labelClass}>Medication in the past 24 hours</legend>
-          <p className={hintClass}>
-            Did you take any medication for this condition within the past 24 hours?
-          </p>
+          <legend className={surveyPromptClass}>
+            Did you take any medication in the past 24 hours?
+          </legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {(["no", "yes"] as const).map((option) => (
               <label
@@ -262,6 +262,7 @@ export function EpisodeForm({
             <InlineTaxonomyPicker
               name="medication_ids"
               title="Which medications?"
+              titleClass={surveyPromptClass}
               singularLabel="medication"
               options={selectableMedicationOptions}
               selectedIds={selectedMedicationIds}
@@ -277,8 +278,11 @@ export function EpisodeForm({
 
       <section className="space-y-3">
         <fieldset className="space-y-3">
-          <legend className={labelClass}>Profile & treatment history</legend>
-          <p className="text-sm text-[color:var(--muted)]">
+          <legend className={surveyPromptClass}>
+            Has anything changed about your pain type, surgeries, procedures, or other therapies
+            since your last entry?
+          </legend>
+          <p className={hintClass}>
             Facial pain type is saved on your profile
             {profilePainTypeLabels.length ? (
               <>
@@ -295,8 +299,7 @@ export function EpisodeForm({
                 before logging an entry
               </>
             )}
-            . Has anything changed about your pain type, surgeries, procedures, or other therapies
-            since your last entry?
+            .
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
             {(["no", "yes"] as const).map((option) => (
@@ -323,7 +326,7 @@ export function EpisodeForm({
           {treatmentHistoryChanged === "yes" ? (
             <div className="space-y-4 rounded-3xl border border-[color:var(--border)] bg-[color:var(--accent)]/60 p-4">
               <label className="block space-y-2">
-                <span className={labelClass}>When did this change occur?</span>
+                <span className={surveyPromptClass}>When did this change occur?</span>
                 <input
                   type="date"
                   name="treatment_change_date"
@@ -338,6 +341,7 @@ export function EpisodeForm({
               <InlineTaxonomyPicker
                 name="pain_type_ids"
                 title="Facial pain type"
+                titleClass={surveyPromptClass}
                 singularLabel="pain type"
                 options={painTypeOptions}
                 selectedIds={selectedPainTypeIds}
@@ -353,6 +357,7 @@ export function EpisodeForm({
                 update will be saved with this entry and applied to your overall profile.
               </p>
               <TreatmentFields
+                promptClass={surveyPromptClass}
                 priorTreatments={priorTreatments}
                 otherTherapies={otherTherapies}
                 onPriorTreatmentsChange={setPriorTreatments}
@@ -367,7 +372,7 @@ export function EpisodeForm({
 
       <section className="space-y-2">
         <label className="block space-y-2">
-          <span className={labelClass}>Notes</span>
+          <span className={surveyPromptClass}>Notes</span>
           <textarea
             name="notes"
             rows={4}

@@ -5,6 +5,9 @@ export const inputMonoClass = `${inputClass} font-mono`;
 
 export const labelClass = "text-sm font-semibold text-[color:var(--foreground)]";
 
+export const surveyPromptClass =
+  "block font-display text-lg font-bold leading-snug tracking-tight text-[color:var(--primary)] md:text-xl";
+
 export const hintClass = "text-xs text-[color:var(--muted)]";
 
 export const btnBase =
