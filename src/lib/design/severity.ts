@@ -3,24 +3,45 @@ export type SeverityDisplay = {
   color: string;
 };
 
-export function getSeverityDisplay(severity: number): SeverityDisplay {
-  if (severity <= 3) {
-    return { label: "Uncomfortable", color: "var(--severity-low)" };
+export function getSeverityLabel(severity: number): string {
+  if (severity === 0) {
+    return "No pain";
   }
 
-  if (severity <= 5) {
-    return { label: "Distracting", color: "var(--severity-mid)" };
+  if (severity <= 4) {
+    return "Mild pain";
   }
 
   if (severity <= 7) {
-    return { label: "Painful", color: "var(--severity-high)" };
+    return "Moderate pain";
   }
 
-  if (severity <= 9) {
-    return { label: "Severe", color: "var(--severity-severe)" };
+  return "Severe pain";
+}
+
+function getSeverityColor(severity: number): string {
+  if (severity === 0) {
+    return "var(--muted)";
   }
 
-  return { label: "Unbearable", color: "var(--severity-unbearable)" };
+  if (severity <= 4) {
+    return "var(--severity-low)";
+  }
+
+  if (severity <= 7) {
+    return "var(--severity-mid)";
+  }
+
+  return "var(--severity-severe)";
+}
+
+export function getSeverityDisplay(severity: number): SeverityDisplay {
+  const clamped = Math.min(10, Math.max(1, Math.round(severity)));
+
+  return {
+    label: getSeverityLabel(clamped),
+    color: getSeverityColor(clamped),
+  };
 }
 
 export function getSeveritySliderPercent(severity: number) {
