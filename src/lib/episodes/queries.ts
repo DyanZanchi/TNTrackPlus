@@ -6,7 +6,11 @@ import type {
   FaceAreaOption,
 } from "@/lib/types/episodes";
 import { buildFilterQuery } from "@/lib/analytics/episodes";
-import { BUILTIN_PAIN_TYPE_OPTIONS, isEpisodeFaceArea } from "@/lib/constants/episode-options";
+import {
+  BUILTIN_PAIN_TYPE_OPTIONS,
+  isEpisodeFaceArea,
+  isPainQualityOption,
+} from "@/lib/constants/episode-options";
 import type { FaceLocationKey, FaceMapPoint } from "@/lib/face-map/types";
 
 type EpisodeRelationRow = {
@@ -31,6 +35,8 @@ type EpisodeQueryRow = {
   id: string;
   user_id: string;
   pain_type: string;
+  pain_qualities: string[] | null;
+  pain_quality_other: string | null;
   pain_pattern: EpisodeRecord["pain_pattern"];
   pulse_duration_seconds: number | null;
   face_area: string;
@@ -83,6 +89,8 @@ function mapEpisodeRow(row: EpisodeQueryRow): EpisodeRecord {
     id: row.id,
     user_id: row.user_id,
     pain_type_labels: painTypeLabels.length ? painTypeLabels : [legacyPainTypeLabel],
+    pain_qualities: (row.pain_qualities ?? []).filter(isPainQualityOption),
+    pain_quality_other: row.pain_quality_other,
     pain_pattern: row.pain_pattern ?? "continuous",
     pulse_duration_seconds: row.pulse_duration_seconds,
     face_areas: derivedFaceAreas,
@@ -115,6 +123,8 @@ export async function getEpisodesForUser(userId: string, filters: DashboardFilte
         id,
         user_id,
         pain_type,
+        pain_qualities,
+        pain_quality_other,
         pain_pattern,
         pulse_duration_seconds,
         face_area,

@@ -5,6 +5,7 @@ import {
   FACE_AREA_OPTIONS,
   BUILTIN_PAIN_TYPE_OPTIONS,
   PAIN_PATTERN_OPTIONS,
+  PAIN_QUALITY_OPTIONS,
 } from "@/lib/constants/episode-options";
 import type { FaceMapPoint } from "@/lib/face-map/types";
 import type { OtherTherapyEntry, PriorTreatmentEntry } from "@/lib/types/profile";
@@ -18,6 +19,7 @@ export type EpisodeTreatmentHistorySnapshot = {
 
 export type BuiltinPainTypeOption = (typeof BUILTIN_PAIN_TYPE_OPTIONS)[number];
 export type PainPatternOption = (typeof PAIN_PATTERN_OPTIONS)[number];
+export type PainQualityOption = (typeof PAIN_QUALITY_OPTIONS)[number];
 export type FaceAreaOption = (typeof FACE_AREA_OPTIONS)[number];
 export type EpisodeFaceArea = keyof typeof EPISODE_FACE_AREA_LABELS;
 export type BuiltinTriggerOption = (typeof BUILTIN_TRIGGER_OPTIONS)[number];
@@ -36,6 +38,8 @@ export type EpisodeRecord = {
   id: string;
   user_id: string;
   pain_type_labels: string[];
+  pain_qualities: PainQualityOption[];
+  pain_quality_other: string | null;
   pain_pattern: PainPatternOption;
   pulse_duration_seconds: number | null;
   face_areas: EpisodeFaceArea[];

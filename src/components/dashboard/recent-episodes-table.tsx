@@ -1,5 +1,9 @@
 import { format } from "date-fns";
-import { formatFaceAreaLabels, formatPainTypeLabels } from "@/lib/constants/episode-options";
+import {
+  formatFaceAreaLabels,
+  formatPainQualityLabels,
+  formatPainTypeLabels,
+} from "@/lib/constants/episode-options";
 import { formatPainPatternDescription } from "@/lib/episodes/pain-pattern";
 import {
   formatTreatmentChangeDate,
@@ -31,6 +35,7 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
               <tr>
                 <th className="px-2 py-3 font-medium">Onset</th>
                 <th className="px-2 py-3 font-medium">Pain type</th>
+                <th className="px-2 py-3 font-medium">Pain quality</th>
                 <th className="px-2 py-3 font-medium">Area</th>
                 <th className="px-2 py-3 font-medium">Pattern</th>
                 <th className="px-2 py-3 font-medium">Severity</th>
@@ -46,6 +51,10 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
                 <tr key={episode.id}>
                   <td className="px-2 py-3">{format(new Date(episode.onset_at), "PPp")}</td>
                   <td className="px-2 py-3">{formatPainTypeLabels(episode.pain_type_labels)}</td>
+                  <td className="px-2 py-3">
+                    {formatPainQualityLabels(episode.pain_qualities, episode.pain_quality_other) ||
+                      "—"}
+                  </td>
                   <td className="px-2 py-3">
                     {episode.face_points.length
                       ? formatFacePointSummary(episode.face_points)

@@ -8,6 +8,8 @@ const sampleFacePoints = JSON.stringify([
 
 const baseEpisode = {
   face_points: sampleFacePoints,
+  pain_qualities: ["sharp_stabbing", "electrical"],
+  pain_quality_other: "",
   pain_pattern: "continuous",
   pulse_duration_hms: "",
   severity: "8",
@@ -30,9 +32,53 @@ describe("episodeSchema", () => {
     if (result.success) {
       expect(result.data.severity).toBe(8);
       expect(result.data.duration_hms).toBe(930);
+      expect(result.data.pain_qualities).toEqual(["sharp_stabbing", "electrical"]);
+      expect(result.data.pain_quality_other).toBeNull();
       expect(result.data.pain_pattern).toBe("continuous");
       expect(result.data.pulse_duration_seconds).toBeNull();
       expect(result.data.face_areas).toEqual(["v2", "v3"]);
+    }
+  });
+
+  it("requires at least one pain quality", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_qualities: [],
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Select at least one pain type.");
+    }
+  });
+
+  it("requires a description when other pain type is selected", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_qualities: ["other"],
+      pain_quality_other: "",
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Describe the other pain type.");
+    }
+  });
+
+  it("keeps a custom description for other pain type", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_qualities: ["burning", "other"],
+      pain_quality_other: "Deep ache",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.pain_qualities).toEqual(["burning", "other"]);
+      expect(result.data.pain_quality_other).toBe("Deep ache");
     }
   });
 

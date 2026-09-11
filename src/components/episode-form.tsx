@@ -7,6 +7,8 @@ import {
   NO_MEDICATION_OPTION_ID,
   PAIN_PATTERN_LABELS,
   PAIN_PATTERN_OPTIONS,
+  PAIN_QUALITY_LABELS,
+  PAIN_QUALITY_OPTIONS,
 } from "@/lib/constants/episode-options";
 import { FaceMapSelector } from "@/components/face-map-selector";
 import { InlineTaxonomyPicker } from "@/components/inline-taxonomy-picker";
@@ -15,7 +17,7 @@ import { IconTrigger } from "@/components/ui/icons";
 import { SeverityCard } from "@/components/ui/severity-card";
 import type { EpisodeActionState } from "@/lib/episodes/actions";
 import type { TaxonomyActionState } from "@/lib/taxonomy/server";
-import type { PainPatternOption, TaxonomyOption } from "@/lib/types/episodes";
+import type { PainPatternOption, PainQualityOption, TaxonomyOption } from "@/lib/types/episodes";
 import type { FaceMapPoint } from "@/lib/face-map/types";
 import type { PatientProfile } from "@/lib/types/profile";
 import {
@@ -90,6 +92,7 @@ export function EpisodeForm({
   const [state, formAction] = useActionState<EpisodeActionState, FormData>(action, INITIAL_STATE);
   const [severity, setSeverity] = useState(5);
   const [painPattern, setPainPattern] = useState<PainPatternOption | "">("");
+  const [selectedPainQualities, setSelectedPainQualities] = useState<PainQualityOption[]>([]);
   const [facePoints, setFacePoints] = useState<FaceMapPoint[]>([]);
   const [selectedTriggerIds, setSelectedTriggerIds] = useState<string[]>([]);
   const [selectedMedicationIds, setSelectedMedicationIds] = useState<string[]>([]);
@@ -140,6 +143,55 @@ export function EpisodeForm({
           <FaceMapSelector points={facePoints} onChange={setFacePoints} />
           <input type="hidden" name="face_points" value={JSON.stringify(facePoints)} />
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <fieldset className="space-y-3">
+          <legend className={surveyPromptClass}>
+            Which words describe the way your pain felt?
+          </legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PAIN_QUALITY_OPTIONS.map((option) => (
+              <label
+                key={option}
+                className={cn(
+                  selectionTileClass,
+                  selectedPainQualities.includes(option) && selectionTileSelectedClass,
+                )}
+              >
+                <input
+                  type="checkbox"
+                  name="pain_qualities"
+                  value={option}
+                  checked={selectedPainQualities.includes(option)}
+                  onChange={() => {
+                    setSelectedPainQualities((current) =>
+                      current.includes(option)
+                        ? current.filter((entry) => entry !== option)
+                        : [...current, option],
+                    );
+                  }}
+                  className="sr-only"
+                />
+                {PAIN_QUALITY_LABELS[option]}
+              </label>
+            ))}
+          </div>
+          <p className={hintClass}>Select all that apply.</p>
+          {selectedPainQualities.includes("other") ? (
+            <label className="block space-y-2">
+              <span className={surveyPromptClass}>Other pain type</span>
+              <input
+                type="text"
+                name="pain_quality_other"
+                required
+                maxLength={200}
+                className={inputClass}
+                placeholder="Describe the pain in your own words"
+              />
+            </label>
+          ) : null}
+        </fieldset>
       </section>
 
       <section className="space-y-4">

@@ -1,6 +1,10 @@
 import { format } from "date-fns";
 import { NextResponse } from "next/server";
-import { formatFaceAreaLabels, formatPainTypeLabels } from "@/lib/constants/episode-options";
+import {
+  formatFaceAreaLabels,
+  formatPainQualityLabels,
+  formatPainTypeLabels,
+} from "@/lib/constants/episode-options";
 import { formatPainPatternDescription } from "@/lib/episodes/pain-pattern";
 import { formatTreatmentHistoryUpdate } from "@/lib/profile/format-treatment-change";
 import { formatFacePointLabels } from "@/lib/face-map/format";
@@ -29,6 +33,7 @@ function toCsv(episodes: EpisodeRecord[]) {
   const header = [
     "onset_at",
     "pain_type_labels",
+    "pain_quality",
     "face_areas",
     "pain_locations",
     "pain_pattern",
@@ -44,6 +49,7 @@ function toCsv(episodes: EpisodeRecord[]) {
   const rows = episodes.map((episode) => [
     format(new Date(episode.onset_at), "yyyy-MM-dd HH:mm"),
     formatPainTypeLabels(episode.pain_type_labels),
+    formatPainQualityLabels(episode.pain_qualities, episode.pain_quality_other),
     formatFaceAreaLabels(episode.face_areas),
     episode.face_points.length ? formatFacePointLabels(episode.face_points) : "",
     formatPainPatternDescription(episode.pain_pattern, episode.pulse_duration_seconds),

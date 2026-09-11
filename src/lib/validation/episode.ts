@@ -3,6 +3,7 @@ import {
   FACE_AREA_OPTIONS,
   NO_MEDICATION_OPTION_ID,
   PAIN_PATTERN_OPTIONS,
+  PAIN_QUALITY_OPTIONS,
 } from "@/lib/constants/episode-options";
 import { getUniqueDivisions } from "@/lib/face-map/classify";
 import { FACE_LOCATION_KEYS } from "@/lib/face-map/types";
@@ -58,6 +59,17 @@ function parseFacePoints(value: FormDataEntryValue | null) {
 
 export const episodeSchema = z
   .object({
+    pain_qualities: z
+      .array(
+        z.enum(PAIN_QUALITY_OPTIONS, {
+          error: "Select a valid pain type.",
+        }),
+      )
+      .min(1, "Select at least one pain type."),
+    pain_quality_other: z.preprocess(
+      nullishToString,
+      z.string().trim().max(200, "Other pain description must be 200 characters or less."),
+    ),
     pain_pattern: z.enum(PAIN_PATTERN_OPTIONS, {
       error: "Select whether the pain was continuous or episodic.",
     }),
@@ -105,6 +117,14 @@ export const episodeSchema = z
         code: "custom",
         message: "Tap at least one point on the face.",
         path: ["face_points"],
+      });
+    }
+
+    if (values.pain_qualities.includes("other") && !values.pain_quality_other) {
+      context.addIssue({
+        code: "custom",
+        message: "Describe the other pain type.",
+        path: ["pain_quality_other"],
       });
     }
 
@@ -200,6 +220,9 @@ export const episodeSchema = z
         values.medication_within_24h === "no"
           ? [NO_MEDICATION_OPTION_ID]
           : values.medication_ids,
+      pain_quality_other: values.pain_qualities.includes("other")
+        ? values.pain_quality_other
+        : null,
       treatment_change_date: values.treatment_history_changed
         ? values.treatment_change_date
         : null,

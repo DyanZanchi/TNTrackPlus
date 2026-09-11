@@ -25,6 +25,47 @@ export const BUILTIN_PAIN_TYPE_OPTIONS = [
   },
 ] as const;
 
+export const PAIN_QUALITY_OPTIONS = [
+  "sharp_stabbing",
+  "electrical",
+  "icicles",
+  "burning",
+  "throbbing",
+  "dull",
+  "other",
+] as const;
+
+export const PAIN_QUALITY_LABELS: Record<(typeof PAIN_QUALITY_OPTIONS)[number], string> = {
+  sharp_stabbing: "Sharp/Stabbing",
+  electrical: "Electrical",
+  icicles: "Icicles",
+  burning: "Burning",
+  throbbing: "Throbbing",
+  dull: "Dull",
+  other: "Other",
+};
+
+export function isPainQualityOption(
+  value: string,
+): value is (typeof PAIN_QUALITY_OPTIONS)[number] {
+  return (PAIN_QUALITY_OPTIONS as readonly string[]).includes(value);
+}
+
+export function formatPainQualityLabels(
+  qualities: Array<(typeof PAIN_QUALITY_OPTIONS)[number]>,
+  otherLabel?: string | null,
+) {
+  return qualities
+    .map((quality) => {
+      if (quality === "other" && otherLabel?.trim()) {
+        return otherLabel.trim();
+      }
+
+      return PAIN_QUALITY_LABELS[quality];
+    })
+    .join(", ");
+}
+
 export const PAIN_PATTERN_OPTIONS = ["continuous", "episodic_pulsing"] as const;
 
 export const DURATION_OPTIONS = [1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180] as const;

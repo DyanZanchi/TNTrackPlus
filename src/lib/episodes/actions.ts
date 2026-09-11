@@ -28,6 +28,8 @@ export async function createEpisodeAction(
 ): Promise<EpisodeActionState> {
   const values = {
     face_points: formData.get("face_points"),
+    pain_qualities: formData.getAll("pain_qualities"),
+    pain_quality_other: formData.get("pain_quality_other"),
     pain_pattern: formData.get("pain_pattern"),
     pulse_duration_hms: formData.get("pulse_duration_hms"),
     severity: formData.get("severity"),
@@ -155,6 +157,8 @@ export async function createEpisodeAction(
     .insert({
       user_id: user.id,
       pain_type: episodePainTypeOptions[0].normalized_label,
+      pain_qualities: result.data.pain_qualities,
+      pain_quality_other: result.data.pain_quality_other,
       pain_pattern: result.data.pain_pattern,
       pulse_duration_seconds: result.data.pulse_duration_seconds,
       // Legacy summary column — divisions live in episode_face_areas / episode_face_points.
