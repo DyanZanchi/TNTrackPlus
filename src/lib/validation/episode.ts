@@ -2,8 +2,11 @@ import { z } from "zod";
 import {
   FACE_AREA_OPTIONS,
   NO_MEDICATION_OPTION_ID,
+  NUMBNESS_OPTIONS,
   PAIN_PATTERN_OPTIONS,
   PAIN_QUALITY_OPTIONS,
+  THROBBING_ASSOCIATION_NONE,
+  THROBBING_ASSOCIATION_OPTIONS,
 } from "@/lib/constants/episode-options";
 import { getUniqueDivisions } from "@/lib/face-map/classify";
 import { FACE_LOCATION_KEYS } from "@/lib/face-map/types";
@@ -70,6 +73,16 @@ export const episodeSchema = z
       nullishToString,
       z.string().trim().max(200, "Other pain description must be 200 characters or less."),
     ),
+    had_numbness: z.enum(NUMBNESS_OPTIONS, {
+      error: "Indicate whether you had numbness.",
+    }),
+    throbbing_associations: z
+      .array(
+        z.enum(THROBBING_ASSOCIATION_OPTIONS, {
+          error: "Select a valid associated symptom.",
+        }),
+      )
+      .default([]),
     pain_pattern: z.enum(PAIN_PATTERN_OPTIONS, {
       error: "Select whether the pain was continuous or episodic.",
     }),
@@ -126,6 +139,25 @@ export const episodeSchema = z
         message: "Describe the other pain type.",
         path: ["pain_quality_other"],
       });
+    }
+
+    if (values.pain_qualities.includes("throbbing")) {
+      if (!values.throbbing_associations.length) {
+        context.addIssue({
+          code: "custom",
+          message: "Indicate whether the throbbing pain was associated with any of these symptoms.",
+          path: ["throbbing_associations"],
+        });
+      } else if (
+        values.throbbing_associations.includes(THROBBING_ASSOCIATION_NONE) &&
+        values.throbbing_associations.length > 1
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Choose No, or select the associated symptoms, not both.",
+          path: ["throbbing_associations"],
+        });
+      }
     }
 
     if (values.pain_pattern === "episodic_pulsing") {
@@ -223,6 +255,9 @@ export const episodeSchema = z
       pain_quality_other: values.pain_qualities.includes("other")
         ? values.pain_quality_other
         : null,
+      throbbing_associations: values.pain_qualities.includes("throbbing")
+        ? values.throbbing_associations
+        : [],
       treatment_change_date: values.treatment_history_changed
         ? values.treatment_change_date
         : null,

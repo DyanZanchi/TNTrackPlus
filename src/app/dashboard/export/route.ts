@@ -4,6 +4,8 @@ import {
   formatFaceAreaLabels,
   formatPainQualityLabels,
   formatPainTypeLabels,
+  formatThrobbingAssociationLabels,
+  NUMBNESS_LABELS,
 } from "@/lib/constants/episode-options";
 import { formatPainPatternDescription } from "@/lib/episodes/pain-pattern";
 import { formatTreatmentHistoryUpdate } from "@/lib/profile/format-treatment-change";
@@ -34,6 +36,8 @@ function toCsv(episodes: EpisodeRecord[]) {
     "onset_at",
     "pain_type_labels",
     "pain_quality",
+    "had_numbness",
+    "throbbing_associations",
     "face_areas",
     "pain_locations",
     "pain_pattern",
@@ -50,6 +54,8 @@ function toCsv(episodes: EpisodeRecord[]) {
     format(new Date(episode.onset_at), "yyyy-MM-dd HH:mm"),
     formatPainTypeLabels(episode.pain_type_labels),
     formatPainQualityLabels(episode.pain_qualities, episode.pain_quality_other),
+    episode.had_numbness ? NUMBNESS_LABELS[episode.had_numbness] : "",
+    formatThrobbingAssociationLabels(episode.throbbing_associations),
     formatFaceAreaLabels(episode.face_areas),
     episode.face_points.length ? formatFacePointLabels(episode.face_points) : "",
     formatPainPatternDescription(episode.pain_pattern, episode.pulse_duration_seconds),

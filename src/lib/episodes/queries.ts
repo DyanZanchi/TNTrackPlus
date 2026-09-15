@@ -9,7 +9,9 @@ import { buildFilterQuery } from "@/lib/analytics/episodes";
 import {
   BUILTIN_PAIN_TYPE_OPTIONS,
   isEpisodeFaceArea,
+  isNumbnessOption,
   isPainQualityOption,
+  isThrobbingAssociationOption,
 } from "@/lib/constants/episode-options";
 import type { FaceLocationKey, FaceMapPoint } from "@/lib/face-map/types";
 
@@ -37,6 +39,8 @@ type EpisodeQueryRow = {
   pain_type: string;
   pain_qualities: string[] | null;
   pain_quality_other: string | null;
+  had_numbness: string | null;
+  throbbing_associations: string[] | null;
   pain_pattern: EpisodeRecord["pain_pattern"];
   pulse_duration_seconds: number | null;
   face_area: string;
@@ -91,6 +95,8 @@ function mapEpisodeRow(row: EpisodeQueryRow): EpisodeRecord {
     pain_type_labels: painTypeLabels.length ? painTypeLabels : [legacyPainTypeLabel],
     pain_qualities: (row.pain_qualities ?? []).filter(isPainQualityOption),
     pain_quality_other: row.pain_quality_other,
+    had_numbness: row.had_numbness && isNumbnessOption(row.had_numbness) ? row.had_numbness : null,
+    throbbing_associations: (row.throbbing_associations ?? []).filter(isThrobbingAssociationOption),
     pain_pattern: row.pain_pattern ?? "continuous",
     pulse_duration_seconds: row.pulse_duration_seconds,
     face_areas: derivedFaceAreas,
@@ -125,6 +131,8 @@ export async function getEpisodesForUser(userId: string, filters: DashboardFilte
         pain_type,
         pain_qualities,
         pain_quality_other,
+        had_numbness,
+        throbbing_associations,
         pain_pattern,
         pulse_duration_seconds,
         face_area,

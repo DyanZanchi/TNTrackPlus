@@ -5,10 +5,15 @@ import { useActionState, useState } from "react";
 import {
   formatPainTypeLabels,
   NO_MEDICATION_OPTION_ID,
+  NUMBNESS_LABELS,
+  NUMBNESS_OPTIONS,
   PAIN_PATTERN_LABELS,
   PAIN_PATTERN_OPTIONS,
   PAIN_QUALITY_LABELS,
   PAIN_QUALITY_OPTIONS,
+  THROBBING_ASSOCIATION_LABELS,
+  THROBBING_ASSOCIATION_NONE,
+  THROBBING_ASSOCIATION_OPTIONS,
 } from "@/lib/constants/episode-options";
 import { FaceMapSelector } from "@/components/face-map-selector";
 import { InlineTaxonomyPicker } from "@/components/inline-taxonomy-picker";
@@ -17,7 +22,13 @@ import { IconTrigger } from "@/components/ui/icons";
 import { SeverityCard } from "@/components/ui/severity-card";
 import type { EpisodeActionState } from "@/lib/episodes/actions";
 import type { TaxonomyActionState } from "@/lib/taxonomy/server";
-import type { PainPatternOption, PainQualityOption, TaxonomyOption } from "@/lib/types/episodes";
+import type {
+  NumbnessOption,
+  PainPatternOption,
+  PainQualityOption,
+  TaxonomyOption,
+  ThrobbingAssociationOption,
+} from "@/lib/types/episodes";
 import type { FaceMapPoint } from "@/lib/face-map/types";
 import type { PatientProfile } from "@/lib/types/profile";
 import {
@@ -93,6 +104,10 @@ export function EpisodeForm({
   const [severity, setSeverity] = useState(5);
   const [painPattern, setPainPattern] = useState<PainPatternOption | "">("");
   const [selectedPainQualities, setSelectedPainQualities] = useState<PainQualityOption[]>([]);
+  const [hadNumbness, setHadNumbness] = useState<NumbnessOption | "">("");
+  const [throbbingAssociations, setThrobbingAssociations] = useState<ThrobbingAssociationOption[]>(
+    [],
+  );
   const [facePoints, setFacePoints] = useState<FaceMapPoint[]>([]);
   const [selectedTriggerIds, setSelectedTriggerIds] = useState<string[]>([]);
   const [selectedMedicationIds, setSelectedMedicationIds] = useState<string[]>([]);
@@ -151,31 +166,89 @@ export function EpisodeForm({
             Which words describe the way your pain felt?
           </legend>
           <div className="grid gap-2 sm:grid-cols-2">
-            {PAIN_QUALITY_OPTIONS.map((option) => (
-              <label
-                key={option}
-                className={cn(
-                  selectionTileClass,
-                  selectedPainQualities.includes(option) && selectionTileSelectedClass,
-                )}
-              >
-                <input
-                  type="checkbox"
-                  name="pain_qualities"
-                  value={option}
-                  checked={selectedPainQualities.includes(option)}
-                  onChange={() => {
-                    setSelectedPainQualities((current) =>
-                      current.includes(option)
-                        ? current.filter((entry) => entry !== option)
-                        : [...current, option],
-                    );
-                  }}
-                  className="sr-only"
-                />
-                {PAIN_QUALITY_LABELS[option]}
-              </label>
-            ))}
+            {PAIN_QUALITY_OPTIONS.map((option) => {
+              const isSelected = selectedPainQualities.includes(option);
+              const showThrobbingFollowUp = option === "throbbing" && isSelected;
+
+              return (
+                <div
+                  key={option}
+                  className={cn("space-y-2", showThrobbingFollowUp && "sm:col-span-2")}
+                >
+                  <label
+                    className={cn(selectionTileClass, isSelected && selectionTileSelectedClass)}
+                  >
+                    <input
+                      type="checkbox"
+                      name="pain_qualities"
+                      value={option}
+                      checked={isSelected}
+                      onChange={() => {
+                        setSelectedPainQualities((current) => {
+                          if (current.includes(option)) {
+                            if (option === "throbbing") {
+                              setThrobbingAssociations([]);
+                            }
+
+                            return current.filter((entry) => entry !== option);
+                          }
+
+                          return [...current, option];
+                        });
+                      }}
+                      className="sr-only"
+                    />
+                    {PAIN_QUALITY_LABELS[option]}
+                  </label>
+                  {showThrobbingFollowUp ? (
+                    <fieldset className="ml-4 space-y-3 border-l-2 border-[color:var(--primary)]/25 py-1 pl-4">
+                      <legend className={surveyPromptClass}>
+                        Was the throbbing associated with any of the following?
+                      </legend>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {THROBBING_ASSOCIATION_OPTIONS.map((association) => (
+                          <label
+                            key={association}
+                            className={cn(
+                              selectionTileClass,
+                              throbbingAssociations.includes(association) &&
+                                selectionTileSelectedClass,
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              name="throbbing_associations"
+                              value={association}
+                              checked={throbbingAssociations.includes(association)}
+                              onChange={() => {
+                                setThrobbingAssociations((current) => {
+                                  if (association === THROBBING_ASSOCIATION_NONE) {
+                                    return current.includes(THROBBING_ASSOCIATION_NONE)
+                                      ? []
+                                      : [THROBBING_ASSOCIATION_NONE];
+                                  }
+
+                                  const withoutNone = current.filter(
+                                    (entry) => entry !== THROBBING_ASSOCIATION_NONE,
+                                  );
+
+                                  return withoutNone.includes(association)
+                                    ? withoutNone.filter((entry) => entry !== association)
+                                    : [...withoutNone, association];
+                                });
+                              }}
+                              className="sr-only"
+                            />
+                            {THROBBING_ASSOCIATION_LABELS[association]}
+                          </label>
+                        ))}
+                      </div>
+                      <p className={hintClass}>Select all that apply, or choose No.</p>
+                    </fieldset>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
           <p className={hintClass}>Select all that apply.</p>
           {selectedPainQualities.includes("other") ? (
@@ -191,6 +264,35 @@ export function EpisodeForm({
               />
             </label>
           ) : null}
+        </fieldset>
+      </section>
+
+      <section className="space-y-4">
+        <fieldset className="space-y-3">
+          <legend className={surveyPromptClass}>Did you have numbness?</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {NUMBNESS_OPTIONS.map((option) => (
+              <label
+                key={option}
+                className={cn(
+                  selectionTileClass,
+                  hadNumbness === option && selectionTileSelectedClass,
+                  option === "unsure" && "sm:col-span-2",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="had_numbness"
+                  value={option}
+                  required
+                  checked={hadNumbness === option}
+                  onChange={() => setHadNumbness(option)}
+                  className="sr-only"
+                />
+                {NUMBNESS_LABELS[option]}
+              </label>
+            ))}
+          </div>
         </fieldset>
       </section>
 

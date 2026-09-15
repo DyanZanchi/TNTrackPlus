@@ -10,6 +10,8 @@ const baseEpisode = {
   face_points: sampleFacePoints,
   pain_qualities: ["sharp_stabbing", "electrical"],
   pain_quality_other: "",
+  had_numbness: "no",
+  throbbing_associations: [],
   pain_pattern: "continuous",
   pulse_duration_hms: "",
   severity: "8",
@@ -79,6 +81,79 @@ describe("episodeSchema", () => {
     if (result.success) {
       expect(result.data.pain_qualities).toEqual(["burning", "other"]);
       expect(result.data.pain_quality_other).toBe("Deep ache");
+    }
+  });
+
+  it("requires a numbness answer", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      had_numbness: "",
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Indicate whether you had numbness.");
+    }
+  });
+
+  it("requires associated symptoms when throbbing is selected", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_qualities: ["throbbing"],
+      throbbing_associations: [],
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "Indicate whether the throbbing pain was associated with any of these symptoms.",
+      );
+    }
+  });
+
+  it("accepts throbbing with associated headache and migraine aura", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_qualities: ["throbbing"],
+      throbbing_associations: ["headache", "migraine_aura"],
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.throbbing_associations).toEqual(["headache", "migraine_aura"]);
+    }
+  });
+
+  it("rejects combining No with other throbbing associations", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_qualities: ["throbbing"],
+      throbbing_associations: ["none", "headache"],
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "Choose No, or select the associated symptoms, not both.",
+      );
+    }
+  });
+
+  it("clears throbbing associations when throbbing is not selected", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_qualities: ["burning"],
+      throbbing_associations: ["headache"],
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.throbbing_associations).toEqual([]);
     }
   });
 

@@ -30,6 +30,8 @@ export async function createEpisodeAction(
     face_points: formData.get("face_points"),
     pain_qualities: formData.getAll("pain_qualities"),
     pain_quality_other: formData.get("pain_quality_other"),
+    had_numbness: formData.get("had_numbness"),
+    throbbing_associations: formData.getAll("throbbing_associations"),
     pain_pattern: formData.get("pain_pattern"),
     pulse_duration_hms: formData.get("pulse_duration_hms"),
     severity: formData.get("severity"),
@@ -159,6 +161,8 @@ export async function createEpisodeAction(
       pain_type: episodePainTypeOptions[0].normalized_label,
       pain_qualities: result.data.pain_qualities,
       pain_quality_other: result.data.pain_quality_other,
+      had_numbness: result.data.had_numbness,
+      throbbing_associations: result.data.throbbing_associations,
       pain_pattern: result.data.pain_pattern,
       pulse_duration_seconds: result.data.pulse_duration_seconds,
       // Legacy summary column — divisions live in episode_face_areas / episode_face_points.

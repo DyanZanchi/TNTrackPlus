@@ -3,6 +3,8 @@ import {
   formatFaceAreaLabels,
   formatPainQualityLabels,
   formatPainTypeLabels,
+  formatThrobbingAssociationLabels,
+  NUMBNESS_LABELS,
 } from "@/lib/constants/episode-options";
 import { formatPainPatternDescription } from "@/lib/episodes/pain-pattern";
 import {
@@ -36,6 +38,8 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
                 <th className="px-2 py-3 font-medium">Onset</th>
                 <th className="px-2 py-3 font-medium">Pain type</th>
                 <th className="px-2 py-3 font-medium">Pain quality</th>
+                <th className="px-2 py-3 font-medium">Numbness</th>
+                <th className="px-2 py-3 font-medium">Associated symptoms</th>
                 <th className="px-2 py-3 font-medium">Area</th>
                 <th className="px-2 py-3 font-medium">Pattern</th>
                 <th className="px-2 py-3 font-medium">Severity</th>
@@ -54,6 +58,12 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
                   <td className="px-2 py-3">
                     {formatPainQualityLabels(episode.pain_qualities, episode.pain_quality_other) ||
                       "—"}
+                  </td>
+                  <td className="px-2 py-3">
+                    {episode.had_numbness ? NUMBNESS_LABELS[episode.had_numbness] : "—"}
+                  </td>
+                  <td className="px-2 py-3">
+                    {formatThrobbingAssociationLabels(episode.throbbing_associations) || "—"}
                   </td>
                   <td className="px-2 py-3">
                     {episode.face_points.length

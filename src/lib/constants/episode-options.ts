@@ -66,6 +66,49 @@ export function formatPainQualityLabels(
     .join(", ");
 }
 
+export const NUMBNESS_OPTIONS = ["yes", "no", "unsure"] as const;
+
+export const NUMBNESS_LABELS: Record<(typeof NUMBNESS_OPTIONS)[number], string> = {
+  yes: "Yes",
+  no: "No",
+  unsure: "I'm not sure / it's hard for me to tell",
+};
+
+export function isNumbnessOption(value: string): value is (typeof NUMBNESS_OPTIONS)[number] {
+  return (NUMBNESS_OPTIONS as readonly string[]).includes(value);
+}
+
+export const THROBBING_ASSOCIATION_OPTIONS = [
+  "headache",
+  "visual_disturbances",
+  "migraine_aura",
+  "none",
+] as const;
+
+export const THROBBING_ASSOCIATION_NONE = "none" as const;
+
+export const THROBBING_ASSOCIATION_LABELS: Record<
+  (typeof THROBBING_ASSOCIATION_OPTIONS)[number],
+  string
+> = {
+  headache: "Headache",
+  visual_disturbances: "Visual disturbances",
+  migraine_aura: "Migraine aura",
+  none: "No",
+};
+
+export function isThrobbingAssociationOption(
+  value: string,
+): value is (typeof THROBBING_ASSOCIATION_OPTIONS)[number] {
+  return (THROBBING_ASSOCIATION_OPTIONS as readonly string[]).includes(value);
+}
+
+export function formatThrobbingAssociationLabels(
+  associations: Array<(typeof THROBBING_ASSOCIATION_OPTIONS)[number]>,
+) {
+  return associations.map((association) => THROBBING_ASSOCIATION_LABELS[association]).join(", ");
+}
+
 export const PAIN_PATTERN_OPTIONS = ["continuous", "episodic_pulsing"] as const;
 
 export const DURATION_OPTIONS = [1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180] as const;
