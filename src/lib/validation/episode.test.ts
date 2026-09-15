@@ -15,7 +15,8 @@ const baseEpisode = {
   pain_pattern: "continuous",
   pulse_duration_hms: "",
   severity: "8",
-  duration_hms: "00:15:30",
+  duration_unit: "minutes",
+  duration_amount: "15",
   onset_at: "2026-04-11T14:30",
   trigger_ids: ["11111111-1111-4111-8111-000000000001"],
   medication_within_24h: "yes",
@@ -33,7 +34,7 @@ describe("episodeSchema", () => {
 
     if (result.success) {
       expect(result.data.severity).toBe(8);
-      expect(result.data.duration_hms).toBe(930);
+      expect(result.data.duration_hms).toBe(900);
       expect(result.data.pain_qualities).toEqual(["sharp_stabbing", "electrical"]);
       expect(result.data.pain_quality_other).toBeNull();
       expect(result.data.pain_pattern).toBe("continuous");
@@ -217,17 +218,58 @@ describe("episodeSchema", () => {
     }
   });
 
-  it("rejects durations outside hh:mm:ss format or above 23:59:59", () => {
+  it("rejects an episode length of 0", () => {
     const result = episodeSchema.safeParse({
       ...baseEpisode,
-      pain_pattern: "continuous",
-      duration_hms: "24:00:00",
+      duration_amount: "0",
     });
 
     expect(result.success).toBe(false);
 
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("Episode length must use hh:mm:ss format.");
+      expect(result.error.issues[0]?.message).toBe("Enter at least 1.");
+    }
+  });
+
+  it("accepts an episode length in hours", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      duration_unit: "hours",
+      duration_amount: "2",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.duration_hms).toBe(7200);
+    }
+  });
+
+  it("accepts an episode length in days", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      duration_unit: "days",
+      duration_amount: "3",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.duration_hms).toBe(259200);
+    }
+  });
+
+  it("rejects an episode length above the unit maximum", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      duration_unit: "days",
+      duration_amount: "15",
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe("Enter 14 days or fewer.");
     }
   });
 

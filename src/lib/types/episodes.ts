@@ -5,6 +5,7 @@ import {
   FACE_AREA_OPTIONS,
   BUILTIN_PAIN_TYPE_OPTIONS,
   NUMBNESS_OPTIONS,
+  DURATION_UNIT_OPTIONS,
   PAIN_PATTERN_OPTIONS,
   PAIN_QUALITY_OPTIONS,
   THROBBING_ASSOCIATION_OPTIONS,
@@ -21,6 +22,7 @@ export type EpisodeTreatmentHistorySnapshot = {
 
 export type BuiltinPainTypeOption = (typeof BUILTIN_PAIN_TYPE_OPTIONS)[number];
 export type PainPatternOption = (typeof PAIN_PATTERN_OPTIONS)[number];
+export type DurationUnitOption = (typeof DURATION_UNIT_OPTIONS)[number];
 export type PainQualityOption = (typeof PAIN_QUALITY_OPTIONS)[number];
 export type NumbnessOption = (typeof NUMBNESS_OPTIONS)[number];
 export type ThrobbingAssociationOption = (typeof THROBBING_ASSOCIATION_OPTIONS)[number];

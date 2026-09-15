@@ -1,5 +1,8 @@
 import { z } from "zod";
 import {
+  DURATION_UNIT_MAX,
+  DURATION_UNIT_OPTIONS,
+  DURATION_UNIT_SECONDS,
   FACE_AREA_OPTIONS,
   NO_MEDICATION_OPTION_ID,
   NUMBNESS_OPTIONS,
@@ -22,17 +25,6 @@ function parseDurationToSeconds(value: string) {
 
   const [, hours, minutes, seconds] = match;
   return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
-}
-
-function durationHmsSchema(message: string) {
-  return z
-    .string()
-    .trim()
-    .regex(durationPattern, message)
-    .transform((value) => parseDurationToSeconds(value))
-    .refine((value) => value !== null && value > 0, "Duration must be at least 00:00:01.")
-    .refine((value) => value !== null && value <= 86399, "Duration must be 23:59:59 or less.")
-    .transform((value) => value as number);
 }
 
 const facePointSchema = z.object({
@@ -99,7 +91,16 @@ export const episodeSchema = z
       .int()
       .min(1, "Severity must be between 1 and 10.")
       .max(10, "Severity must be between 1 and 10."),
-    duration_hms: durationHmsSchema("Episode length must use hh:mm:ss format."),
+    duration_unit: z.enum(DURATION_UNIT_OPTIONS, {
+      error: "Choose whether the episode lasted minutes, hours, or days.",
+    }),
+    duration_amount: z.preprocess(
+      (value) => (value == null || value === "" ? undefined : value),
+      z.coerce
+        .number({ error: "Enter how long the episode lasted." })
+        .int("Enter a whole number.")
+        .min(1, "Enter at least 1."),
+    ),
     onset_at: z
       .string()
       .min(1, "Provide the onset time.")
@@ -158,6 +159,16 @@ export const episodeSchema = z
           path: ["throbbing_associations"],
         });
       }
+    }
+
+    const durationMax = DURATION_UNIT_MAX[values.duration_unit];
+
+    if (values.duration_amount > durationMax) {
+      context.addIssue({
+        code: "custom",
+        message: `Enter ${durationMax} ${values.duration_unit} or fewer.`,
+        path: ["duration_amount"],
+      });
     }
 
     if (values.pain_pattern === "episodic_pulsing") {
@@ -248,6 +259,7 @@ export const episodeSchema = z
       face_points: facePoints,
       face_areas: getUniqueDivisions(facePoints),
       pulse_duration_seconds: pulseDurationSeconds,
+      duration_hms: values.duration_amount * DURATION_UNIT_SECONDS[values.duration_unit],
       medication_ids:
         values.medication_within_24h === "no"
           ? [NO_MEDICATION_OPTION_ID]

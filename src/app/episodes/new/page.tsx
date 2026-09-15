@@ -62,7 +62,7 @@ export default async function NewEpisodePage() {
         >
           ← Back to dashboard
         </Link>
-        <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">Log new attack</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">Log new episode</h1>
         <p className="text-[color:var(--muted)]">
           Capture the details of this episode so your dashboard can spot patterns over time.
         </p>

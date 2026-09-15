@@ -111,6 +111,26 @@ export function formatThrobbingAssociationLabels(
 
 export const PAIN_PATTERN_OPTIONS = ["continuous", "episodic_pulsing"] as const;
 
+export const DURATION_UNIT_OPTIONS = ["minutes", "hours", "days"] as const;
+
+export const DURATION_UNIT_LABELS: Record<(typeof DURATION_UNIT_OPTIONS)[number], string> = {
+  minutes: "Minutes",
+  hours: "Hours",
+  days: "Days",
+};
+
+export const DURATION_UNIT_MAX: Record<(typeof DURATION_UNIT_OPTIONS)[number], number> = {
+  minutes: 180,
+  hours: 72,
+  days: 14,
+};
+
+export const DURATION_UNIT_SECONDS: Record<(typeof DURATION_UNIT_OPTIONS)[number], number> = {
+  minutes: 60,
+  hours: 3600,
+  days: 86400,
+};
+
 export const DURATION_OPTIONS = [1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180] as const;
 
 export const FACE_AREA_LABELS: Record<(typeof FACE_AREA_OPTIONS)[number], string> = {

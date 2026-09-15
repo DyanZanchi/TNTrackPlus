@@ -4,27 +4,29 @@ export function cn(...classes: Array<string | false | null | undefined>) {
 
 export function formatDurationSeconds(totalSeconds: number) {
   const seconds = Math.max(0, Math.round(totalSeconds));
-  const hours = Math.floor(seconds / 3600);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remainingSeconds = seconds % 60;
+  const parts: string[] = [];
+
+  if (days > 0) {
+    parts.push(days === 1 ? "1 day" : `${days} days`);
+  }
 
   if (hours > 0) {
-    if (remainingSeconds === 0) {
-      return `${hours} hr ${minutes} min`;
-    }
-
-    return `${hours} hr ${minutes} min ${remainingSeconds} sec`;
+    parts.push(`${hours} hr`);
   }
 
   if (minutes > 0) {
-    if (remainingSeconds === 0) {
-      return `${minutes} min`;
-    }
-
-    return `${minutes} min ${remainingSeconds} sec`;
+    parts.push(`${minutes} min`);
   }
 
-  return `${remainingSeconds} sec`;
+  if (remainingSeconds > 0 && days === 0) {
+    parts.push(`${remainingSeconds} sec`);
+  }
+
+  return parts.join(" ") || "0 min";
 }
 
 export function formatDurationHms(totalSeconds: number) {

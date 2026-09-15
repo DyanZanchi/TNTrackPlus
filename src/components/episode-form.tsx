@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
+  DURATION_UNIT_LABELS,
+  DURATION_UNIT_MAX,
+  DURATION_UNIT_OPTIONS,
   formatPainTypeLabels,
   NO_MEDICATION_OPTION_ID,
   NUMBNESS_LABELS,
@@ -23,6 +26,7 @@ import { SeverityCard } from "@/components/ui/severity-card";
 import type { EpisodeActionState } from "@/lib/episodes/actions";
 import type { TaxonomyActionState } from "@/lib/taxonomy/server";
 import type {
+  DurationUnitOption,
   NumbnessOption,
   PainPatternOption,
   PainQualityOption,
@@ -103,6 +107,8 @@ export function EpisodeForm({
   const [state, formAction] = useActionState<EpisodeActionState, FormData>(action, INITIAL_STATE);
   const [severity, setSeverity] = useState(5);
   const [painPattern, setPainPattern] = useState<PainPatternOption | "">("");
+  const [durationUnit, setDurationUnit] = useState<DurationUnitOption | "">("");
+  const [durationAmount, setDurationAmount] = useState("");
   const [selectedPainQualities, setSelectedPainQualities] = useState<PainQualityOption[]>([]);
   const [hadNumbness, setHadNumbness] = useState<NumbnessOption | "">("");
   const [throbbingAssociations, setThrobbingAssociations] = useState<ThrobbingAssociationOption[]>(
@@ -139,7 +145,7 @@ export function EpisodeForm({
 
       <section className="space-y-4">
         <label className="block space-y-2">
-          <span className={surveyPromptClass}>Time of attack</span>
+          <span className={surveyPromptClass}>Time of episode</span>
           <input
             type="datetime-local"
             name="onset_at"
@@ -345,30 +351,65 @@ export function EpisodeForm({
             </label>
           ) : null}
 
-          <label className="block space-y-2">
-            <span className={surveyPromptClass}>Episode length</span>
-            <input
-              type="text"
-              name="duration_hms"
-              defaultValue="00:05:00"
-              required
-              inputMode="text"
-              maxLength={8}
-              className={inputMonoClass}
-              placeholder="00:05:00"
-              spellCheck={false}
-              autoCapitalize="off"
-              autoCorrect="off"
-            />
-            <p className={hintClass}>Enter duration as hh:mm:ss, up to 23:59:59.</p>
-          </label>
+          <fieldset className="space-y-3 sm:col-span-2">
+            <legend className={surveyPromptClass}>How long did this last?</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {DURATION_UNIT_OPTIONS.map((option) => (
+                <label
+                  key={option}
+                  className={cn(
+                    selectionTileClass,
+                    durationUnit === option && selectionTileSelectedClass,
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="duration_unit"
+                    value={option}
+                    required
+                    checked={durationUnit === option}
+                    onChange={() => {
+                      setDurationUnit(option);
+                      setDurationAmount("");
+                    }}
+                    className="sr-only"
+                  />
+                  {DURATION_UNIT_LABELS[option]}
+                </label>
+              ))}
+            </div>
+            {durationUnit ? (
+              <div className="max-w-xs space-y-2">
+                <label className="block space-y-2">
+                  <span className={surveyPromptClass}>How many {durationUnit}?</span>
+                  <input
+                    type="number"
+                    name="duration_amount"
+                    value={durationAmount}
+                    onChange={(event) => setDurationAmount(event.target.value)}
+                    required
+                    min={1}
+                    max={DURATION_UNIT_MAX[durationUnit]}
+                    step={1}
+                    inputMode="numeric"
+                    className={inputClass}
+                  />
+                </label>
+                <p className={hintClass}>
+                  Enter a whole number from 1 to {DURATION_UNIT_MAX[durationUnit]}.
+                </p>
+              </div>
+            ) : (
+              <p className={hintClass}>Choose minutes, hours, or days, then enter how many.</p>
+            )}
+          </fieldset>
         </div>
       </section>
 
       <section className="space-y-6">
         <InlineTaxonomyPicker
           name="trigger_ids"
-          title="What prompted the attack?"
+          title="What prompted the episode?"
           titleClass={surveyPromptClass}
           singularLabel="trigger"
           options={triggerOptions}
