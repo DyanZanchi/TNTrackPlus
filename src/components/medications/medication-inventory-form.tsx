@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import { FormInstructions } from "@/components/ui/form-instructions";
 import { InjectableFollowUp } from "@/components/medications/injectable-follow-up";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -56,7 +56,6 @@ import {
   hintClass,
   inputClass,
   selectionTileClass,
-  surveyPromptClass,
 } from "@/lib/design/ui-classes";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -65,6 +64,72 @@ const tileClass = cn(
   selectionTileClass,
   "has-[:checked]:border-[color:var(--primary)] has-[:checked]:bg-[color:var(--accent)] has-[:checked]:text-[color:var(--primary)]",
 );
+
+const SHORT_STATUS_LABELS: Record<string, string> = {
+  taking_now: "Taking now",
+  stopped: "Stopped",
+  never: "Never",
+  used_past_year: "Past year",
+  used_earlier: "Earlier",
+  do_not_know: "Not sure",
+  used_past_week: "Yes",
+  not_used: "No",
+};
+
+function SectionDropdown({
+  title,
+  detail,
+  badge,
+  children,
+}: {
+  title: string;
+  detail: string;
+  badge: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className={cn(cardClass, "group overflow-hidden")}>
+      <summary className="flex cursor-pointer list-none items-center gap-3 bg-white p-4 transition-colors marker:hidden hover:bg-[color:var(--accent)] sm:p-5 group-open:bg-[color:var(--accent)] [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-lg font-bold tracking-tight">{title}</span>
+          <span className={cn(hintClass, "mt-0.5 block")}>{detail}</span>
+        </span>
+        <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[color:var(--primary)]">
+          {badge}
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[color:var(--primary)] px-3.5 py-2 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(123,82,171,0.28)]">
+          <span className="group-open:hidden">Open</span>
+          <span className="hidden group-open:inline">Close</span>
+          <svg
+            viewBox="0 0 20 20"
+            className="h-5 w-5 transition-transform duration-200 group-open:rotate-180"
+            aria-hidden="true"
+          >
+            <path
+              d="M4.5 7.25 10 12.75 15.5 7.25"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+      </summary>
+      <div className="space-y-4 border-t border-[color:var(--border)] bg-white px-4 py-4 sm:px-5">{children}</div>
+    </details>
+  );
+}
+
+const SECTION_SUMMARIES: Record<MedicationUseContext, string> = {
+  regular: "Daily prescriptions",
+  brain_fog: "Medicines for brain fog",
+  rescue: "Fast-acting medicines for severe pain",
+  blood_pressure_rescue: "Used for a pain attack, not daily blood pressure",
+  injectable: "Injections and infusions",
+  otc: "Bought without a prescription",
+  topical_otc: "Creams, patches, and similar products",
+};
 
 const SECTIONS: { id: MedicationUseContext; title: string; intro: string }[] = [
   {
@@ -193,14 +258,32 @@ function MedicationRow({
     item.otcFrequency === "weekly" ? OTC_FREQUENCY_WEEKLY : item.otcFrequency === "full" ? OTC_FREQUENCY_FULL : [];
 
   return (
-    <div className="space-y-3 border-t border-[color:var(--border)] pt-4">
-      <RadioChoices
-        name={`med_${item.key}_status`}
-        legend={item.label}
-        options={options}
-        defaultValue={status}
-        onChange={onStatus}
-      />
+    <div className="space-y-3 py-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="font-semibold">{item.label}</p>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={item.label}>
+          {options.map((option) => (
+            <label
+              key={option.value}
+              title={option.label}
+              className={cn(
+                "cursor-pointer rounded-full border border-[color:var(--border)] px-3 py-2 text-sm",
+                "has-[:checked]:border-[color:var(--primary)] has-[:checked]:bg-[color:var(--accent)] has-[:checked]:text-[color:var(--primary)]",
+              )}
+            >
+              <input
+                type="radio"
+                name={`med_${item.key}_status`}
+                value={option.value}
+                defaultChecked={status === option.value}
+                onChange={() => onStatus(option.value)}
+                className="sr-only"
+              />
+              {SHORT_STATUS_LABELS[option.value] ?? option.label}
+            </label>
+          ))}
+        </div>
+      </div>
       {status === "taking_now" ? (
         <div className="space-y-3 pl-1 sm:pl-4">
           <RadioChoices
@@ -386,6 +469,7 @@ export function MedicationInventoryForm({
   const [erVisited, setErVisited] = useState(inventory.context.erVisited ?? "");
   const [erSentHome, setErSentHome] = useState(inventory.context.erSentHomeNoTreatment ?? "");
   const [erIv, setErIv] = useState(inventory.context.erGivenIvAnticonvulsant ?? "");
+  const [queries, setQueries] = useState<Record<string, string>>({});
   const savedByKey = new Map(inventory.uses.map((use) => [use.catalogKey, use]));
   const detailCount =
     compoundedUsed === "yes" ? Math.min(Number.parseInt(compoundedCount || "0", 10) || 0, 3) : 0;
@@ -401,31 +485,65 @@ export function MedicationInventoryForm({
       {saved && !demoMode ? <p className={alertInfoClass}>Medication answers saved.</p> : null}
       {state.error ? <p className={alertErrorClass}>{state.error}</p> : null}
 
-      {SECTIONS.map((section) => (
-        <details key={section.id} open={section.id === "regular"} className={cn(cardClass, "p-5")}>
-          <summary className={cn(surveyPromptClass, "cursor-pointer")}>{section.title}</summary>
-          <p className={cn(hintClass, "mt-3")}>{section.intro}</p>
-          <div className="mt-4 space-y-4">
-            {medicationsInContext(section.id).map((item) => (
-              <MedicationRow
-                key={item.key}
-                item={item}
-                saved={savedByKey.get(item.key)}
-                status={statuses[item.key] ?? ""}
-                onStatus={(value) => setStatuses((current) => ({ ...current, [item.key]: value }))}
-              />
-            ))}
-          </div>
-        </details>
-      ))}
+      <p className={hintClass}>
+        Open one list at a time. Answer only the medicines you recognize, then save at the bottom.
+      </p>
 
-      <section className={cn(cardClass, "space-y-4 p-5")}>
-        <h2 className={surveyPromptClass}>Compounded medications</h2>
-        <p className={hintClass}>
-          A compounded medication is customized for you and is not a standard product from a
-          pharmaceutical company. Think about the past year. Do not count low-dose naltrexone,
-          which is in the regular list.
-        </p>
+      {SECTIONS.map((section) => {
+        const items = medicationsInContext(section.id);
+        const query = (queries[section.id] ?? "").trim().toLowerCase();
+        const answered = items.filter((item) => statuses[item.key]).length;
+        return (
+          <SectionDropdown
+            key={section.id}
+            title={section.title}
+            detail={SECTION_SUMMARIES[section.id]}
+            badge={answered > 0 ? `${answered} answered` : `${items.length} medicines`}
+          >
+            <p className={hintClass}>{section.intro}</p>
+            <label className="block space-y-2 text-sm font-semibold">
+              Find a medicine
+              <input
+                value={queries[section.id] ?? ""}
+                onChange={(event) =>
+                  setQueries((current) => ({ ...current, [section.id]: event.target.value }))
+                }
+                placeholder="Type part of a name"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.preventDefault();
+                }}
+                className={inputClass}
+              />
+            </label>
+            <div className="divide-y divide-[color:var(--border)]">
+              {items.map((item) => {
+                const matches = !query || item.label.toLowerCase().includes(query);
+                return (
+                  <div key={item.key} className={matches ? undefined : "hidden"}>
+                    <MedicationRow
+                      item={item}
+                      saved={savedByKey.get(item.key)}
+                      status={statuses[item.key] ?? ""}
+                      onStatus={(value) =>
+                        setStatuses((current) => ({ ...current, [item.key]: value }))
+                      }
+                    />
+                  </div>
+                );
+              })}
+              {query && items.every((item) => !item.label.toLowerCase().includes(query)) ? (
+                <p className={hintClass}>No medicines in this list match that search.</p>
+              ) : null}
+            </div>
+          </SectionDropdown>
+        );
+      })}
+
+      <SectionDropdown
+        title="Compounded medications"
+        detail="Custom medicines from the past year. Do not count low-dose naltrexone."
+        badge={compoundedUsed ? "Answered" : "Optional"}
+      >
         <RadioChoices
           name="compounded_used"
           legend="In the past year, have you used any compounded medications for neuropathic facial pain in addition to low-dose naltrexone?"
@@ -530,10 +648,13 @@ export function MedicationInventoryForm({
             })}
           </>
         ) : null}
-      </section>
+      </SectionDropdown>
 
-      <section className={cn(cardClass, "space-y-4 p-5")}>
-        <h2 className={surveyPromptClass}>Emergency department</h2>
+      <SectionDropdown
+        title="Emergency department"
+        detail="Visits in the past year for facial pain. Urgent care does not count."
+        badge={erVisited ? "Answered" : "Optional"}
+      >
         <RadioChoices
           name="er_visited"
           legend="In the past year, have you visited an emergency room or emergency department because of your facial pain? Do not count urgent care centers."
@@ -627,10 +748,13 @@ export function MedicationInventoryForm({
           The protocol question records whether you asked for a named emergency-care plan. It does
           not list treatment steps.
         </p>
-      </section>
+      </SectionDropdown>
 
-      <section className={cn(cardClass, "space-y-4 p-5")}>
-        <h2 className={surveyPromptClass}>Marijuana</h2>
+      <SectionDropdown
+        title="Marijuana"
+        detail="Use for facial pain during the past year."
+        badge={cannabisUsed ? "Answered" : "Optional"}
+      >
         <RadioChoices
           name="cannabis_used"
           legend="Thinking about the past year, have you used marijuana for your facial pain?"
@@ -666,10 +790,13 @@ export function MedicationInventoryForm({
             />
           </>
         ) : null}
-      </section>
+      </SectionDropdown>
 
-      <section className={cn(cardClass, "space-y-4 p-5")}>
-        <h2 className={surveyPromptClass}>How you answered</h2>
+      <SectionDropdown
+        title="How you answered"
+        detail="Whether your medicines were in front of you, and how sure you are."
+        badge="Optional"
+      >
         <RadioChoices
           name="medications_in_front"
           legend="Did you have your medications in front of you when you answered these questions?"
@@ -685,7 +812,7 @@ export function MedicationInventoryForm({
           options={ANSWER_CONFIDENCE.map((value) => ({ value, label: ANSWER_CONFIDENCE_LABELS[value] }))}
           defaultValue={inventory.context.answerConfidence}
         />
-      </section>
+      </SectionDropdown>
 
       <div className="flex flex-wrap gap-3">
         <SubmitButton label="Save medications" />
