@@ -15,6 +15,10 @@ const PROTECTED_PATHS = [
 ];
 const PROFILE_GATE_PATHS = ["/dashboard", "/episodes", "/check-ins", "/log", "/export", "/medications"];
 
+export function matchesAppPath(pathname: string, path: string) {
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
 export async function updateSession(request: NextRequest) {
   if (isAuthBypassed() || !hasSupabaseEnv()) {
     return NextResponse.next({
@@ -46,7 +50,9 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isProtectedPath = PROTECTED_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
+  const isProtectedPath = PROTECTED_PATHS.some((path) =>
+    matchesAppPath(request.nextUrl.pathname, path),
+  );
 
   if (!user && isProtectedPath) {
     const loginUrl = request.nextUrl.clone();
@@ -58,9 +64,9 @@ export async function updateSession(request: NextRequest) {
   if (user) {
     const pathname = request.nextUrl.pathname;
     const profileComplete = await isUserProfileComplete(supabase, user.id);
-    const isProfileGatePath = PROFILE_GATE_PATHS.some((path) => pathname.startsWith(path));
-    const isSettingsPath = pathname.startsWith("/settings");
-    const isOnboardingPath = pathname.startsWith(ONBOARDING_PATH);
+    const isProfileGatePath = PROFILE_GATE_PATHS.some((path) => matchesAppPath(pathname, path));
+    const isSettingsPath = matchesAppPath(pathname, "/settings");
+    const isOnboardingPath = matchesAppPath(pathname, ONBOARDING_PATH);
     const isAuthEntryPath = pathname === "/login" || pathname === "/signup";
 
     if (!profileComplete) {
