@@ -7,9 +7,16 @@ const emptyProfile: PatientProfile = {
   age: null,
   gender: null,
   gender_other: null,
+  current_pain_pattern: null,
+  clinician_evaluation_status: null,
+  received_facial_pain_diagnosis: null,
+  additional_undiagnosed_pain: null,
   pain_type_option_ids: [],
   prior_treatments: [],
   other_therapies: [],
+  relevant_history_events: [],
+  described_patterns: [],
+  headache_patterns: [],
   updated_at: null,
 };
 

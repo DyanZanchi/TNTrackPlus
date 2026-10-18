@@ -9,14 +9,20 @@ type SeverityCardProps = {
   severity: number;
   onChange: (value: number) => void;
   name?: string;
+  prompt?: string;
 };
 
-export function SeverityCard({ severity, onChange, name = "severity" }: SeverityCardProps) {
+export function SeverityCard({
+  severity,
+  onChange,
+  name = "severity",
+  prompt = "How intense was this episode at its worst?",
+}: SeverityCardProps) {
   const display = getSeverityDisplay(severity);
 
   return (
     <div className={cn(cardClass, "space-y-5 p-6")}>
-      <p className={surveyPromptClass}>How did the pain make you feel?</p>
+      <p className={surveyPromptClass}>{prompt}</p>
 
       <div className="space-y-1">
         <div className="flex items-baseline gap-1">
@@ -51,8 +57,8 @@ export function SeverityCard({ severity, onChange, name = "severity" }: Severity
           aria-label="Pain severity"
         />
         <div className="flex justify-between text-xs font-medium text-[color:var(--muted)]">
-          <span>1</span>
-          <span>10</span>
+          <span>1 — Lower intensity</span>
+          <span>10 — Higher intensity</span>
         </div>
       </div>
     </div>

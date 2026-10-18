@@ -1,22 +1,18 @@
-import { format } from "date-fns";
 import { NextResponse } from "next/server";
-import {
-  formatFaceAreaLabels,
-  formatPainQualityLabels,
-  formatPainTypeLabels,
-  formatThrobbingAssociationLabels,
-  NUMBNESS_LABELS,
-} from "@/lib/constants/episode-options";
-import { formatPainPatternDescription } from "@/lib/episodes/pain-pattern";
-import { formatTreatmentHistoryUpdate } from "@/lib/profile/format-treatment-change";
-import { formatFacePointLabels } from "@/lib/face-map/format";
 import { buildFilterQuery } from "@/lib/analytics/episodes";
+import { getBackgroundPainCheckInsForUser } from "@/lib/background-check-ins/queries";
+import { DEMO_BACKGROUND_CHECK_INS } from "@/lib/demo/background-check-ins";
 import { DEMO_EPISODES } from "@/lib/demo/episodes";
+import {
+  buildBackgroundCheckInsCsv,
+  buildEpisodesCsv,
+} from "@/lib/export/episodes-csv";
+import { buildMedicationInventoryCsv } from "@/lib/export/medication-csv";
+import { getMedicationInventory } from "@/lib/medications/queries";
 import { hasSupabaseEnv, isAuthBypassed } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEpisodesForUser } from "@/lib/episodes/queries";
-import type { DashboardFilters, EpisodeRecord, RangeKey } from "@/lib/types/episodes";
-import { formatDurationHms } from "@/lib/utils";
+import type { DashboardFilters, RangeKey } from "@/lib/types/episodes";
 
 const VALID_RANGES: RangeKey[] = ["30d", "90d", "month", "custom"];
 
@@ -31,53 +27,6 @@ function parseFilters(request: Request): DashboardFilters {
   };
 }
 
-function toCsv(episodes: EpisodeRecord[]) {
-  const header = [
-    "onset_at",
-    "pain_type_labels",
-    "pain_quality",
-    "had_numbness",
-    "throbbing_associations",
-    "face_areas",
-    "pain_locations",
-    "pain_pattern",
-    "pulse_duration_hms",
-    "severity",
-    "duration_hms",
-    "duration_seconds",
-    "triggers",
-    "medications",
-    "notes",
-  ];
-
-  const rows = episodes.map((episode) => [
-    format(new Date(episode.onset_at), "yyyy-MM-dd HH:mm"),
-    formatPainTypeLabels(episode.pain_type_labels),
-    formatPainQualityLabels(episode.pain_qualities, episode.pain_quality_other),
-    episode.had_numbness ? NUMBNESS_LABELS[episode.had_numbness] : "",
-    formatThrobbingAssociationLabels(episode.throbbing_associations),
-    formatFaceAreaLabels(episode.face_areas),
-    episode.face_points.length ? formatFacePointLabels(episode.face_points) : "",
-    formatPainPatternDescription(episode.pain_pattern, episode.pulse_duration_seconds),
-    episode.pulse_duration_seconds ? formatDurationHms(episode.pulse_duration_seconds) : "",
-    String(episode.severity),
-    formatDurationHms(episode.duration_seconds),
-    String(episode.duration_seconds),
-    episode.trigger_labels.join("; "),
-    episode.medication_labels.join("; "),
-    (episode.notes ?? "").replaceAll('"', '""'),
-    episode.treatment_history_changed ? "yes" : "no",
-    episode.treatment_change_date ?? "",
-    episode.treatment_history_changed
-      ? formatTreatmentHistoryUpdate(episode.treatment_history_snapshot)
-      : "",
-  ]);
-
-  return [header, ...rows]
-    .map((row) => row.map((cell) => `"${cell}"`).join(","))
-    .join("\n");
-}
-
 export async function GET(request: Request) {
   if (!isAuthBypassed() && !hasSupabaseEnv()) {
     return NextResponse.json(
@@ -88,16 +37,59 @@ export async function GET(request: Request) {
 
   const filters = parseFilters(request);
   const { startIso, endIso } = buildFilterQuery(filters);
+  const exportKind = new URL(request.url).searchParams.get("kind");
+  const exportBackgroundCheckIns = exportKind === "background";
+  const exportMedications = exportKind === "medications";
 
   if (isAuthBypassed()) {
-    const csv = toCsv(
-      DEMO_EPISODES.filter((episode) => episode.onset_at >= startIso && episode.onset_at <= endIso),
-    );
+    const csv = exportMedications
+      ? buildMedicationInventoryCsv({
+          uses: [],
+          compounded: [],
+          context: {
+            compoundedUsed: null,
+            compoundedCount: null,
+            cannabisUsed: null,
+            cannabisMedicalDispensary: null,
+            cannabisOpenDispensary: null,
+            cannabisOtherPlace: null,
+            cannabisRelief: null,
+            erVisited: null,
+            erVisitCount: null,
+            erSentHomeNoTreatment: null,
+            erGivenOpiate: null,
+            erGivenIvAnticonvulsant: null,
+            erAskedForNamedProtocol: null,
+            erOtherMedication: null,
+            erAdmitted: null,
+            erFeltHeard: null,
+            erTreatedAsDrugSeeking: null,
+            medicationsInFront: null,
+            answerConfidence: null,
+          },
+        })
+      : exportBackgroundCheckIns
+      ? buildBackgroundCheckInsCsv(
+          DEMO_BACKGROUND_CHECK_INS.filter(
+            (checkIn) => checkIn.recorded_at >= startIso && checkIn.recorded_at <= endIso,
+          ),
+        )
+      : buildEpisodesCsv(
+          DEMO_EPISODES.filter(
+            (episode) => episode.onset_at >= startIso && episode.onset_at <= endIso,
+          ),
+        );
+
+    const filename = exportMedications
+      ? "tn-medications-demo.csv"
+      : exportBackgroundCheckIns
+        ? "tn-background-check-ins-demo.csv"
+        : "tn-episodes-demo.csv";
 
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": 'attachment; filename="tn-episodes-demo.csv"',
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   }
@@ -112,12 +104,22 @@ export async function GET(request: Request) {
   }
 
   try {
-    const csv = toCsv(await getEpisodesForUser(user.id, filters));
+    const csv = exportMedications
+      ? buildMedicationInventoryCsv(await getMedicationInventory())
+      : exportBackgroundCheckIns
+        ? buildBackgroundCheckInsCsv(await getBackgroundPainCheckInsForUser(user.id, filters))
+        : buildEpisodesCsv(await getEpisodesForUser(user.id, filters));
+
+    const filename = exportMedications
+      ? "tn-medications.csv"
+      : exportBackgroundCheckIns
+        ? "tn-background-check-ins.csv"
+        : "tn-episodes.csv";
 
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": 'attachment; filename="tn-episodes.csv"',
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {

@@ -36,6 +36,8 @@ type InlineTaxonomyPickerProps = {
   demoMode: boolean;
   grid?: boolean;
   tileIcon?: React.ComponentType<IconProps>;
+  exclusiveOptionId?: string;
+  exclusiveOptionIds?: string[];
 };
 
 function sortOptions(options: TaxonomyOption[]) {
@@ -66,6 +68,8 @@ export function InlineTaxonomyPicker({
   demoMode,
   grid = false,
   tileIcon: TileIcon = IconTag,
+  exclusiveOptionId,
+  exclusiveOptionIds,
 }: InlineTaxonomyPickerProps) {
   const [options, setOptions] = useState(() => sortOptions(initialOptions));
   const [draftLabel, setDraftLabel] = useState("");
@@ -74,9 +78,22 @@ export function InlineTaxonomyPicker({
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
+  const exclusiveIds = exclusiveOptionIds ?? (exclusiveOptionId ? [exclusiveOptionId] : []);
+
   function toggleOption(id: string) {
+    if (exclusiveIds.includes(id)) {
+      onSelectionChange(selectedIdSet.has(id) ? [] : [id]);
+      return;
+    }
+
+    const withoutExclusive = exclusiveIds.length
+      ? selectedIds.filter((value) => !exclusiveIds.includes(value))
+      : selectedIds;
+
     onSelectionChange(
-      selectedIdSet.has(id) ? selectedIds.filter((value) => value !== id) : [...selectedIds, id],
+      selectedIdSet.has(id)
+        ? withoutExclusive.filter((value) => value !== id)
+        : [...withoutExclusive, id],
     );
   }
 
@@ -106,7 +123,10 @@ export function InlineTaxonomyPicker({
         upsertOption(result.option);
 
         if (!selectedIdSet.has(result.option.id)) {
-          onSelectionChange([...selectedIds, result.option.id]);
+          const nextIds = exclusiveIds.length
+            ? selectedIds.filter((value) => !exclusiveIds.includes(value))
+            : selectedIds;
+          onSelectionChange([...nextIds, result.option.id]);
         }
       }
 

@@ -4,9 +4,10 @@ import type { DashboardFilters } from "@/lib/types/episodes";
 
 type ExportButtonProps = {
   filters: DashboardFilters;
+  kind?: "episodes" | "background" | "medications";
 };
 
-export function ExportButton({ filters }: ExportButtonProps) {
+export function ExportButton({ filters, kind = "episodes" }: ExportButtonProps) {
   const params = new URLSearchParams();
   params.set("range", filters.range);
 
@@ -18,9 +19,20 @@ export function ExportButton({ filters }: ExportButtonProps) {
     params.set("end", filters.end);
   }
 
+  if (kind !== "episodes") {
+    params.set("kind", kind);
+  }
+
+  const label =
+    kind === "background"
+      ? "background check-ins"
+      : kind === "medications"
+        ? "medications"
+        : "episodes";
+
   return (
     <Link href={`/dashboard/export?${params.toString()}`} className={btnSecondaryClass}>
-      Export CSV
+      Download {label} CSV
     </Link>
   );
 }

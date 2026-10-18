@@ -6,6 +6,25 @@ export const GENDER_OPTIONS = [
   "other",
 ] as const;
 
+export const PATIENT_PAIN_PATTERN_OPTIONS = [
+  "episodes_with_pain_free_periods",
+  "continuous_background",
+  "continuous_with_episodes",
+  "varies_unsure",
+] as const;
+
+export const PATIENT_PAIN_PATTERN_LABELS: Record<
+  (typeof PATIENT_PAIN_PATTERN_OPTIONS)[number],
+  string
+> = {
+  episodes_with_pain_free_periods:
+    "I have episodes of pain with pain-free periods between them.",
+  continuous_background:
+    "I have continuous/background pain that is present most or all of the time.",
+  continuous_with_episodes: "I have continuous/background pain with episodes of worse pain.",
+  varies_unsure: "My pain pattern varies / I'm not sure.",
+};
+
 export const PRIOR_TREATMENT_OPTIONS = [
   "mvd",
   "glycerin_rhizotomy",
@@ -15,6 +34,57 @@ export const PRIOR_TREATMENT_OPTIONS = [
   "cyberknife",
   "other",
 ] as const;
+
+export const CLINICIAN_EVALUATION_OPTIONS = [
+  "yes",
+  "no",
+  "prefer_not_to_say",
+  "not_sure",
+] as const;
+
+export const CLINICIAN_EVALUATION_LABELS: Record<
+  (typeof CLINICIAN_EVALUATION_OPTIONS)[number],
+  string
+> = {
+  yes: "Yes",
+  no: "No",
+  prefer_not_to_say: "Prefer not to say",
+  not_sure: "Not sure",
+};
+
+export const DIAGNOSIS_STATUS_OPTIONS = ["yes", "no", "not_sure"] as const;
+
+export const DIAGNOSIS_STATUS_LABELS: Record<(typeof DIAGNOSIS_STATUS_OPTIONS)[number], string> = {
+  yes: "Yes",
+  no: "No",
+  not_sure: "Not sure",
+};
+
+export const RELEVANT_HISTORY_OPTIONS = [
+  "accident_injury",
+  "dental_work",
+  "facial_pain_procedure",
+  "other_procedure",
+  "no_known_event",
+  "not_sure",
+] as const;
+
+export const RELEVANT_HISTORY_LABELS: Record<(typeof RELEVANT_HISTORY_OPTIONS)[number], string> = {
+  accident_injury: "Accident, injury, or trauma",
+  dental_work: "Dental work, such as an extraction, root canal, or implant",
+  facial_pain_procedure: "A procedure or surgery for facial pain",
+  other_procedure: "Another relevant procedure",
+  no_known_event: "No known precipitating event",
+  not_sure: "Not sure",
+};
+
+export const EXCLUSIVE_HISTORY_OPTIONS = ["no_known_event", "not_sure"] as const;
+
+export function isExclusiveHistoryOption(
+  value: string,
+): value is (typeof EXCLUSIVE_HISTORY_OPTIONS)[number] {
+  return (EXCLUSIVE_HISTORY_OPTIONS as readonly string[]).includes(value);
+}
 
 export const OTHER_THERAPY_OPTIONS = [
   "holistic_therapy",

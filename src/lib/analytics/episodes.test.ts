@@ -10,6 +10,12 @@ const episodes: EpisodeRecord[] = [
     pain_qualities: ["sharp_stabbing", "electrical"],
     pain_quality_other: null,
     had_numbness: "no",
+    numbness_location: null,
+    numbness_onset_date: null,
+    numbness_onset_unknown: false,
+    numbness_after_procedure: null,
+    numbness_procedure_note: null,
+    numbness_timing: null,
     throbbing_associations: [],
     pain_pattern: "episodic_pulsing",
     pulse_duration_seconds: 2,
@@ -19,7 +25,12 @@ const episodes: EpisodeRecord[] = [
       { x: 280, y: 520, division: "v3", location: "right_jaw", label: "Right jaw" },
     ],
     severity: 8,
+    functional_impact: null,
+    background_severity_before: null,
+    duration_status: "known",
     duration_seconds: 930,
+    pain_changed_during: null,
+    pain_change_summary: null,
     onset_at: "2026-03-10T14:00:00.000Z",
     trigger_labels: ["Chewing", "Cold air"],
     medication_labels: ["Carbamazepine"],
@@ -36,13 +47,24 @@ const episodes: EpisodeRecord[] = [
     pain_qualities: ["sharp_stabbing"],
     pain_quality_other: null,
     had_numbness: "unsure",
+    numbness_location: null,
+    numbness_onset_date: null,
+    numbness_onset_unknown: false,
+    numbness_after_procedure: null,
+    numbness_procedure_note: null,
+    numbness_timing: null,
     throbbing_associations: [],
     pain_pattern: "episodic_pulsing",
     pulse_duration_seconds: 1,
     face_areas: ["v3"],
     face_points: [{ x: 280, y: 520, division: "v3", location: "right_jaw", label: "Right jaw" }],
     severity: 6,
+    functional_impact: null,
+    background_severity_before: null,
+    duration_status: "known",
     duration_seconds: 600,
+    pain_changed_during: null,
+    pain_change_summary: null,
     onset_at: "2026-03-22T09:00:00.000Z",
     trigger_labels: ["Chewing", "Flossing"],
     medication_labels: ["No medication"],
@@ -59,13 +81,24 @@ const episodes: EpisodeRecord[] = [
     pain_qualities: ["burning"],
     pain_quality_other: null,
     had_numbness: "yes",
+    numbness_location: null,
+    numbness_onset_date: null,
+    numbness_onset_unknown: false,
+    numbness_after_procedure: null,
+    numbness_procedure_note: null,
+    numbness_timing: null,
     throbbing_associations: [],
     pain_pattern: "continuous",
     pulse_duration_seconds: null,
     face_areas: ["v2", "multiple_areas"],
     face_points: [{ x: 720, y: 430, division: "v2", location: "left_cheek", label: "Left cheek" }],
     severity: 9,
+    functional_impact: null,
+    background_severity_before: null,
+    duration_status: "known",
     duration_seconds: 1800,
+    pain_changed_during: null,
+    pain_change_summary: null,
     onset_at: "2026-04-05T20:00:00.000Z",
     trigger_labels: ["Cold air"],
     medication_labels: ["Baclofen", "Ibuprofen"],
@@ -123,5 +156,30 @@ describe("episode analytics", () => {
       { month: "Mar", episodes: 2, averageSeverity: 7 },
       { month: "Apr", episodes: 1, averageSeverity: 9 },
     ]);
+  });
+
+  it("excludes unknown or ongoing durations from the average", () => {
+    const summary = summarizeEpisodes([
+      ...episodes,
+      {
+        ...episodes[0],
+        id: "4",
+        duration_status: "unknown",
+        duration_seconds: null,
+      },
+    ]);
+
+    expect(summary.totalEpisodes).toBe(4);
+    expect(summary.averageDurationSeconds).toBe(1110);
+  });
+
+  it("does not treat a month without logs as zero intensity", () => {
+    const trend = buildMonthlyTrend(episodes, 3);
+
+    expect(trend[0]).toEqual({
+      month: "Feb",
+      episodes: 0,
+      averageSeverity: null,
+    });
   });
 });

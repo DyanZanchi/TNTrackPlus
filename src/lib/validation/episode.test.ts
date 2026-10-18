@@ -52,7 +52,7 @@ describe("episodeSchema", () => {
     expect(result.success).toBe(false);
 
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("Select at least one pain type.");
+      expect(result.error.issues[0]?.message).toBe("Select at least one pain description.");
     }
   });
 
@@ -66,7 +66,7 @@ describe("episodeSchema", () => {
     expect(result.success).toBe(false);
 
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe("Describe the other pain type.");
+      expect(result.error.issues[0]?.message).toBe("Describe the pain in your own words.");
     }
   });
 
@@ -98,19 +98,17 @@ describe("episodeSchema", () => {
     }
   });
 
-  it("requires associated symptoms when throbbing is selected", () => {
+  it("allows optional associated symptoms when throbbing is selected", () => {
     const result = episodeSchema.safeParse({
       ...baseEpisode,
       pain_qualities: ["throbbing"],
       throbbing_associations: [],
     });
 
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
 
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe(
-        "Indicate whether the throbbing pain was associated with any of these symptoms.",
-      );
+    if (result.success) {
+      expect(result.data.throbbing_associations).toEqual([]);
     }
   });
 
@@ -329,6 +327,134 @@ describe("episodeSchema", () => {
         "Select at least one medication taken in the past 24 hours.",
       );
     }
+  });
+
+  it("accepts an unknown duration without a length", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      duration_status: "unknown",
+      duration_unit: "",
+      duration_amount: "",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.duration_status).toBe("unknown");
+      expect(result.data.duration_hms).toBeNull();
+    }
+  });
+
+  it("accepts an ongoing episode without a length", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      duration_status: "ongoing",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.duration_status).toBe("ongoing");
+      expect(result.data.duration_hms).toBeNull();
+    }
+  });
+
+  it("rejects combining spontaneous trigger with other triggers", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      trigger_ids: [
+        "11111111-1111-4111-8111-000000000001",
+        "11111111-1111-4111-8111-000000000008",
+      ],
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "Choose Spontaneous / no clear trigger or Not sure by itself, or select the triggers that applied.",
+      );
+    }
+  });
+
+  it("accepts spontaneous trigger by itself", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      trigger_ids: ["11111111-1111-4111-8111-000000000008"],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("keeps optional numbness follow-ups when numbness is present", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      had_numbness: "yes",
+      numbness_location: "Right cheek",
+      numbness_onset_date: "2026-03-01",
+      numbness_onset_unknown: "",
+      numbness_after_procedure: "no",
+      numbness_timing: "current",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.numbness_location).toBe("Right cheek");
+      expect(result.data.numbness_onset_date).toBe("2026-03-01");
+      expect(result.data.numbness_timing).toBe("current");
+    }
+  });
+
+  it("clears numbness follow-ups when numbness is not present", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      had_numbness: "no",
+      numbness_location: "Right cheek",
+      numbness_timing: "current",
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.numbness_location).toBeNull();
+      expect(result.data.numbness_timing).toBeNull();
+    }
+  });
+
+  it("accepts I don't know for medications without selecting a medication", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      medication_within_24h: "not_sure",
+      medication_ids: [],
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.medication_ids).toEqual([]);
+    }
+  });
+
+  it("rejects combining Not sure with other triggers", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      trigger_ids: [
+        "11111111-1111-4111-8111-000000000001",
+        "11111111-1111-4111-8111-000000000009",
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts shooting and pins-and-needles pain descriptions", () => {
+    const result = episodeSchema.safeParse({
+      ...baseEpisode,
+      pain_qualities: ["shooting", "pins_needles"],
+    });
+
+    expect(result.success).toBe(true);
   });
 
   it("requires at least one face point", () => {

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { FACE_AREA_OPTION_IDS, LEGACY_MULTIPLE_AREAS } from "@/lib/constants/episode-options";
+import { fieldErrorsFromZod } from "@/lib/validation/form-errors";
 import {
   diffAddedOtherTherapies,
   diffAddedPriorTreatments,
@@ -14,12 +15,13 @@ import { parseTreatmentFormData, type TreatmentFieldsData } from "@/lib/validati
 import { isAuthBypassed, hasSupabaseEnv } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveSelectedTaxonomyOptions } from "@/lib/taxonomy/server";
-import { hasExclusiveNoMedication } from "@/lib/taxonomy/shared";
+import { hasExclusiveNoClearTrigger, hasExclusiveNoMedication } from "@/lib/taxonomy/shared";
 import { episodeSchema } from "@/lib/validation/episode";
 
 export type EpisodeActionState = {
   error?: string;
   success?: string;
+  fieldErrors?: Record<string, string>;
 };
 
 export async function createEpisodeAction(
@@ -31,12 +33,23 @@ export async function createEpisodeAction(
     pain_qualities: formData.getAll("pain_qualities"),
     pain_quality_other: formData.get("pain_quality_other"),
     had_numbness: formData.get("had_numbness"),
+    numbness_location: formData.get("numbness_location"),
+    numbness_onset_date: formData.get("numbness_onset_date"),
+    numbness_onset_unknown: formData.get("numbness_onset_unknown"),
+    numbness_after_procedure: formData.get("numbness_after_procedure"),
+    numbness_procedure_note: formData.get("numbness_procedure_note"),
+    numbness_timing: formData.get("numbness_timing"),
     throbbing_associations: formData.getAll("throbbing_associations"),
     pain_pattern: formData.get("pain_pattern"),
     pulse_duration_hms: formData.get("pulse_duration_hms"),
     severity: formData.get("severity"),
+    functional_impact: formData.get("functional_impact"),
+    background_severity_before: formData.get("background_severity_before"),
+    duration_status: formData.get("duration_status"),
     duration_unit: formData.get("duration_unit"),
     duration_amount: formData.get("duration_amount"),
+    pain_changed_during: formData.get("pain_changed_during"),
+    pain_change_summary: formData.get("pain_change_summary"),
     onset_at: formData.get("onset_at"),
     trigger_ids: formData.getAll("trigger_ids"),
     medication_within_24h: formData.get("medication_within_24h"),
@@ -50,7 +63,10 @@ export async function createEpisodeAction(
 
   if (!result.success) {
     const [issue] = result.error.issues;
-    return { error: issue?.message ?? "Check the episode details and try again." };
+    return {
+      error: issue?.message ?? "Check the episode details and try again.",
+      fieldErrors: fieldErrorsFromZod(result.error),
+    };
   }
 
   let treatmentUpdate: TreatmentFieldsData | undefined;
@@ -91,6 +107,17 @@ export async function createEpisodeAction(
 
   if (hasExclusiveNoMedication(result.data.medication_ids)) {
     return { error: "Choose either 'No medication' or one or more medications, not both." };
+  }
+
+  if (hasExclusiveNoClearTrigger(result.data.trigger_ids)) {
+    return {
+      error:
+        "Choose Spontaneous / no clear trigger or Not sure by itself, or select the triggers that applied.",
+      fieldErrors: {
+        trigger_ids:
+          "Choose Spontaneous / no clear trigger or Not sure by itself, or select the triggers that applied.",
+      },
+    };
   }
 
   const painTypeIds = formData.getAll("pain_type_ids").map(String);
@@ -155,107 +182,49 @@ export async function createEpisodeAction(
     };
   }
 
-  const { data: episode, error } = await supabase
-    .from("episodes")
-    .insert({
-      user_id: user.id,
+  const { data: createdEpisodeId, error } = await supabase.rpc("create_episode", {
+    episode_payload: {
       pain_type: episodePainTypeOptions[0].normalized_label,
       pain_qualities: result.data.pain_qualities,
       pain_quality_other: result.data.pain_quality_other,
       had_numbness: result.data.had_numbness,
+      numbness_location: result.data.numbness_location,
+      numbness_onset_date: result.data.numbness_onset_date,
+      numbness_onset_unknown: result.data.numbness_onset_unknown,
+      numbness_after_procedure: result.data.numbness_after_procedure,
+      numbness_procedure_note: result.data.numbness_procedure_note,
+      numbness_timing: result.data.numbness_timing,
       throbbing_associations: result.data.throbbing_associations,
       pain_pattern: result.data.pain_pattern,
       pulse_duration_seconds: result.data.pulse_duration_seconds,
-      // Legacy summary column — divisions live in episode_face_areas / episode_face_points.
       face_area: LEGACY_MULTIPLE_AREAS,
       severity: result.data.severity,
-      duration_minutes: Math.max(1, Math.ceil(result.data.duration_hms / 60)),
+      functional_impact: result.data.functional_impact,
+      background_severity_before: result.data.background_severity_before,
+      duration_status: result.data.duration_status,
+      duration_minutes:
+        result.data.duration_hms == null ? null : Math.max(1, Math.ceil(result.data.duration_hms / 60)),
       duration_seconds: result.data.duration_hms,
+      pain_changed_during: result.data.pain_changed_during,
+      pain_change_summary: result.data.pain_change_summary,
       onset_at: result.data.onset_at,
       notes: result.data.notes || null,
       treatment_history_changed: result.data.treatment_history_changed,
       treatment_change_date: result.data.treatment_change_date,
       treatment_history_snapshot: treatmentHistorySnapshot,
-      trigger_name: null,
-      medication_taken: null,
-    })
-    .select("id")
-    .single();
+    },
+    pain_type_option_ids: episodePainTypeOptions.map((option) => option.id),
+    trigger_option_ids: triggerOptions.map((option) => option.id),
+    face_area_option_ids: result.data.face_areas.map((faceArea) => FACE_AREA_OPTION_IDS[faceArea]),
+    face_points: result.data.face_points,
+    medication_option_ids: medicationOptions.map((option) => option.id),
+  });
 
   if (error) {
     return { error: error.message };
   }
 
-  const episodeId = episode.id;
-
-  if (episodePainTypeOptions.length) {
-    const { error: episodePainTypesError } = await supabase.from("episode_pain_types").insert(
-      episodePainTypeOptions.map((option) => ({
-        episode_id: episodeId,
-        pain_type_option_id: option.id,
-      })),
-    );
-
-    if (episodePainTypesError) {
-      return { error: episodePainTypesError.message };
-    }
-  }
-
-  if (triggerOptions.length) {
-    const { error: triggerError } = await supabase.from("episode_triggers").insert(
-      triggerOptions.map((option) => ({
-        episode_id: episodeId,
-        trigger_option_id: option.id,
-      })),
-    );
-
-    if (triggerError) {
-      return { error: triggerError.message };
-    }
-  }
-
-  if (result.data.face_areas.length) {
-    const { error: faceAreaError } = await supabase.from("episode_face_areas").insert(
-      result.data.face_areas.map((faceArea) => ({
-        episode_id: episodeId,
-        face_area_option_id: FACE_AREA_OPTION_IDS[faceArea],
-      })),
-    );
-
-    if (faceAreaError) {
-      return { error: faceAreaError.message };
-    }
-  }
-
-  if (result.data.face_points.length) {
-    const { error: facePointError } = await supabase.from("episode_face_points").insert(
-      result.data.face_points.map((point) => ({
-        episode_id: episodeId,
-        x: point.x,
-        y: point.y,
-        division: point.division,
-        location_key: point.location,
-        location_label: point.label,
-      })),
-    );
-
-    if (facePointError) {
-      return { error: facePointError.message };
-    }
-  }
-
-  if (medicationOptions.length) {
-    const { error: medicationError } = await supabase.from("episode_medications").insert(
-      medicationOptions.map((option) => ({
-        episode_id: episodeId,
-        medication_option_id: option.id,
-      })),
-    );
-
-    if (medicationError) {
-      return { error: medicationError.message };
-    }
-  }
+  const episodeId = createdEpisodeId as string;
 
   if (result.data.treatment_history_changed && treatmentUpdate) {
     const treatmentSaveResult = await savePatientTreatments(supabase, user.id, treatmentUpdate);

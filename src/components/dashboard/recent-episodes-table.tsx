@@ -13,7 +13,7 @@ import {
 } from "@/lib/profile/format-treatment-change";
 import { formatFacePointSummary } from "@/lib/face-map/format";
 import type { EpisodeRecord } from "@/lib/types/episodes";
-import { formatDurationHms, formatDurationSeconds } from "@/lib/utils";
+import { formatEpisodeDuration, formatEpisodeDurationHms } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 
 type RecentEpisodesTableProps = {
@@ -43,6 +43,7 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
                 <th className="px-2 py-3 font-medium">Area</th>
                 <th className="px-2 py-3 font-medium">Pattern</th>
                 <th className="px-2 py-3 font-medium">Severity</th>
+                <th className="px-2 py-3 font-medium">Activity impact</th>
                 <th className="px-2 py-3 font-medium">Duration</th>
                 <th className="px-2 py-3 font-medium">Trigger</th>
                 <th className="px-2 py-3 font-medium">Medication</th>
@@ -75,9 +76,17 @@ export function RecentEpisodesTable({ episodes }: RecentEpisodesTableProps) {
                   </td>
                   <td className="px-2 py-3">{episode.severity}/10</td>
                   <td className="px-2 py-3">
-                    <div>{formatDurationHms(episode.duration_seconds)}</div>
+                    {episode.functional_impact === null
+                      ? "Not answered"
+                      : `${episode.functional_impact}/10`}
+                  </td>
+                  <td className="px-2 py-3">
+                    <div>
+                      {formatEpisodeDurationHms(episode.duration_seconds, episode.duration_status) ||
+                        formatEpisodeDuration(episode.duration_seconds, episode.duration_status)}
+                    </div>
                     <div className="text-xs text-[color:var(--muted)]">
-                      {formatDurationSeconds(episode.duration_seconds)}
+                      {formatEpisodeDuration(episode.duration_seconds, episode.duration_status)}
                     </div>
                   </td>
                   <td className="px-2 py-3">{episode.trigger_labels.join(", ")}</td>

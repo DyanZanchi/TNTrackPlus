@@ -37,3 +37,33 @@ export function formatDurationHms(totalSeconds: number) {
 
   return `${hours}:${minutes}:${remainingSeconds}`;
 }
+
+export function formatEpisodeDuration(
+  totalSeconds: number | null,
+  status: "known" | "unknown" | "ongoing" = "known",
+) {
+  if (status === "unknown") {
+    return "Unknown";
+  }
+
+  if (status === "ongoing") {
+    return "Ongoing";
+  }
+
+  if (totalSeconds == null) {
+    return "Not recorded";
+  }
+
+  return formatDurationSeconds(totalSeconds);
+}
+
+export function formatEpisodeDurationHms(
+  totalSeconds: number | null,
+  status: "known" | "unknown" | "ongoing" = "known",
+) {
+  if (status === "unknown" || status === "ongoing" || totalSeconds == null) {
+    return "";
+  }
+
+  return formatDurationHms(totalSeconds);
+}

@@ -46,6 +46,12 @@ export default async function RootLayout({
     <html lang="en" className={`${dmSans.variable} ${playfair.variable}`}>
       <body>
         <div className="min-h-screen">
+          <a
+            href="#main-content"
+            className="sr-only z-[100] rounded-lg bg-white px-4 py-2 text-[color:var(--foreground)] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+          >
+            Skip to main content
+          </a>
           <header className="sticky top-0 z-50 border-b border-[color:var(--border)] bg-white/90 backdrop-blur-md">
             <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
               <div>
@@ -65,8 +71,14 @@ export default async function RootLayout({
                     <Link href="/dashboard" className={cn(navLinkClass, "hidden sm:inline-flex")}>
                       Dashboard
                     </Link>
-                    <Link href="/episodes/new" className={cn(navLinkClass, "hidden sm:inline-flex")}>
-                      New entry
+                    <Link href="/log" className={cn(navLinkClass, "hidden sm:inline-flex")}>
+                      Log pain
+                    </Link>
+                    <Link href="/medications" className={cn(navLinkClass, "hidden sm:inline-flex")}>
+                      Medications
+                    </Link>
+                    <Link href="/export" className={cn(navLinkClass, "hidden sm:inline-flex")}>
+                      Export
                     </Link>
                     <Link
                       href="/settings"
@@ -83,10 +95,10 @@ export default async function RootLayout({
                       <SignOutButton />
                     )}
                     <Link
-                      href="/episodes/new"
+                      href="/log"
                       className={cn(btnPrimaryClass, "ml-1 hidden min-h-10 px-4 sm:inline-flex")}
                     >
-                      + Log entry
+                      + Log pain
                     </Link>
                   </>
                 ) : (
@@ -101,9 +113,37 @@ export default async function RootLayout({
                 )}
               </nav>
             </div>
+            {user ? (
+              <nav
+                aria-label="Mobile navigation"
+                className="mx-auto grid max-w-6xl grid-cols-5 border-t border-[color:var(--border)] px-1 py-1 text-xs sm:hidden"
+              >
+                <Link href="/dashboard" className={cn(navLinkClass, "justify-center px-1")}>
+                  Dashboard
+                </Link>
+                <Link href="/log" className={cn(navLinkClass, "justify-center px-1")}>
+                  Log
+                </Link>
+                <Link href="/medications" className={cn(navLinkClass, "justify-center px-1")}>
+                  Meds
+                </Link>
+                <Link href="/export" className={cn(navLinkClass, "justify-center px-1")}>
+                  Export
+                </Link>
+                <Link href="/settings" className={cn(navLinkClass, "justify-center px-1")}>
+                  Profile
+                </Link>
+              </nav>
+            ) : null}
           </header>
 
-          <main className="mx-auto max-w-6xl px-6 py-8 md:py-10">{children}</main>
+          <main id="main-content" className="mx-auto max-w-6xl px-6 py-8 md:py-10">
+            {children}
+          </main>
+          <footer className="mx-auto max-w-6xl px-6 pb-8 text-center text-xs text-[color:var(--muted)]">
+            TN Track+ records self-reported information. It does not diagnose conditions or replace
+            professional medical care.
+          </footer>
         </div>
       </body>
     </html>

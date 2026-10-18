@@ -3,8 +3,17 @@ import { type NextRequest, NextResponse } from "next/server";
 import { isUserProfileComplete, ONBOARDING_PATH } from "@/lib/profile/is-complete";
 import { getSupabaseEnv, hasSupabaseEnv, isAuthBypassed } from "@/lib/supabase/env";
 
-const PROTECTED_PATHS = ["/dashboard", "/episodes", "/settings", ONBOARDING_PATH];
-const PROFILE_GATE_PATHS = ["/dashboard", "/episodes"];
+const PROTECTED_PATHS = [
+  "/dashboard",
+  "/episodes",
+  "/check-ins",
+  "/log",
+  "/export",
+  "/medications",
+  "/settings",
+  ONBOARDING_PATH,
+];
+const PROFILE_GATE_PATHS = ["/dashboard", "/episodes", "/check-ins", "/log", "/export", "/medications"];
 
 export async function updateSession(request: NextRequest) {
   if (isAuthBypassed() || !hasSupabaseEnv()) {

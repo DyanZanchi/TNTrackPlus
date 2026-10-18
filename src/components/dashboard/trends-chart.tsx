@@ -23,9 +23,19 @@ export function TrendsChart({ data }: TrendsChartProps) {
   return (
     <Card className="space-y-6">
       <div>
-        <h2 className="font-display text-xl font-bold">Pain over time</h2>
+        <h2 className="font-display text-xl font-bold">Episodic pain over time</h2>
         <p className="text-sm text-[color:var(--muted)]">
           Episode counts and average severity across recent months.
+        </p>
+        <p className="sr-only">
+          {data
+            .map(
+              (point) =>
+                `${point.month}: ${point.episodes} episodes, average intensity ${
+                  point.averageSeverity ?? "not available"
+                }.`,
+            )
+            .join(" ")}
         </p>
       </div>
 

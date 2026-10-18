@@ -2,6 +2,7 @@ import {
   BUILTIN_MEDICATION_OPTIONS,
   BUILTIN_PAIN_TYPE_OPTIONS,
   BUILTIN_TRIGGER_OPTIONS,
+  EXCLUSIVE_TRIGGER_OPTION_IDS,
   NO_MEDICATION_OPTION_ID,
 } from "@/lib/constants/episode-options";
 import type { TaxonomyOption } from "@/lib/types/episodes";
@@ -33,4 +34,14 @@ export function getDemoTaxonomyOptions(kind: TaxonomyKind): TaxonomyOption[] {
 
 export function hasExclusiveNoMedication(ids: string[]) {
   return ids.includes(NO_MEDICATION_OPTION_ID) && ids.length > 1;
+}
+
+export function hasExclusiveNoClearTrigger(ids: string[]) {
+  return hasExclusiveTrigger(ids);
+}
+
+export function hasExclusiveTrigger(ids: string[]) {
+  return (
+    EXCLUSIVE_TRIGGER_OPTION_IDS.some((optionId) => ids.includes(optionId)) && ids.length > 1
+  );
 }

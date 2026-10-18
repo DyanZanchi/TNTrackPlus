@@ -62,11 +62,25 @@ export async function saveProfileAction(
     age: data.age,
     gender: data.gender,
     gender_other: data.gender_other || null,
+    clinician_evaluation_status: data.clinician_evaluation_status,
+    received_facial_pain_diagnosis: data.received_facial_pain_diagnosis,
+    additional_undiagnosed_pain: data.additional_undiagnosed_pain,
     updated_at: now,
   });
 
   if (profileError) {
     return { error: profileError.message };
+  }
+
+  if (data.pain_pattern) {
+    const { error: painPatternError } = await supabase.rpc("set_current_pain_pattern", {
+      requested_pattern_type: data.pain_pattern,
+      requested_effective_from: new Date().toISOString().slice(0, 10),
+    });
+
+    if (painPatternError) {
+      return { error: painPatternError.message };
+    }
   }
 
   const [painTypesResult, treatmentResult] = await Promise.all([
@@ -83,6 +97,81 @@ export async function saveProfileAction(
 
   if (treatmentResult.error) {
     return { error: treatmentResult.error };
+  }
+
+  const { error: historyDeleteError } = await supabase
+    .from("relevant_history_events")
+    .delete()
+    .eq("user_id", user.id);
+
+  if (historyDeleteError) {
+    return { error: historyDeleteError.message };
+  }
+
+  const { error: describedDeleteError } = await supabase
+    .from("patient_described_patterns")
+    .delete()
+    .eq("user_id", user.id);
+
+  if (describedDeleteError) {
+    return { error: describedDeleteError.message };
+  }
+
+  if (data.described_patterns.length) {
+    const { error: describedInsertError } = await supabase.from("patient_described_patterns").insert(
+      data.described_patterns.map((pattern) => ({
+        user_id: user.id,
+        pattern_key: pattern.pattern_key,
+        status: pattern.status,
+      })),
+    );
+
+    if (describedInsertError) {
+      return { error: describedInsertError.message };
+    }
+  }
+
+  const { error: headacheDeleteError } = await supabase
+    .from("patient_headache_patterns")
+    .delete()
+    .eq("user_id", user.id);
+
+  if (headacheDeleteError) {
+    return { error: headacheDeleteError.message };
+  }
+
+  if (data.headache_patterns.length) {
+    const { error: headacheInsertError } = await supabase.from("patient_headache_patterns").insert(
+      data.headache_patterns.map((pattern) => ({
+        user_id: user.id,
+        pattern_key: pattern.pattern_key,
+        status: pattern.status,
+        long_course: pattern.long_course,
+        autonomic_symptoms: pattern.autonomic_symptoms,
+        updated_at: now,
+      })),
+    );
+
+    if (headacheInsertError) {
+      return { error: headacheInsertError.message };
+    }
+  }
+
+  if (data.relevant_history_events.length) {
+    const { error: historyInsertError } = await supabase.from("relevant_history_events").insert(
+      data.relevant_history_events.map((event) => ({
+        user_id: user.id,
+        event_type: event.event_type,
+        event_date: event.event_date,
+        event_date_unknown: event.event_date_unknown,
+        symptoms_began_afterward: event.symptoms_began_afterward,
+        notes: event.notes,
+      })),
+    );
+
+    if (historyInsertError) {
+      return { error: historyInsertError.message };
+    }
   }
 
   const { error: revisionError } = await supabase.from("patient_profile_revisions").insert({

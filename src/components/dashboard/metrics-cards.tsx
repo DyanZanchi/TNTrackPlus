@@ -21,12 +21,12 @@ export function MetricsCards({ summary }: MetricsCardsProps) {
       label: "Average duration",
       value: summary.averageDurationSeconds
         ? formatDurationSeconds(summary.averageDurationSeconds)
-        : "0 sec",
+        : "Not recorded",
       icon: IconDuration,
     },
     {
       label: "Average severity",
-      value: summary.averageSeverity ? `${summary.averageSeverity} / 10` : "0 / 10",
+      value: summary.averageSeverity ? `${summary.averageSeverity} / 10` : "Not recorded",
       icon: IconSeverity,
     },
     { label: "Top trigger", value: summary.topTrigger, icon: IconTrigger },

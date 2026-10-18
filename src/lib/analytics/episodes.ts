@@ -62,13 +62,18 @@ export function summarizeEpisodes(episodes: EpisodeRecord[]): DashboardSummary {
     };
   }
 
-  const durationTotal = episodes.reduce((total, episode) => total + episode.duration_seconds, 0);
+  const knownDurations = episodes
+    .map((episode) => episode.duration_seconds)
+    .filter((value): value is number => value != null);
+  const durationTotal = knownDurations.reduce((total, seconds) => total + seconds, 0);
   const severityTotal = episodes.reduce((total, episode) => total + episode.severity, 0);
   const triggerCounts = countByLabel(episodes.flatMap((episode) => episode.trigger_labels));
 
   return {
     totalEpisodes: episodes.length,
-    averageDurationSeconds: Math.round(durationTotal / episodes.length),
+    averageDurationSeconds: knownDurations.length
+      ? Math.round(durationTotal / knownDurations.length)
+      : 0,
     averageSeverity: Number((severityTotal / episodes.length).toFixed(1)),
     topTrigger: triggerCounts[0]?.label ?? "No entries yet",
   };
@@ -84,12 +89,12 @@ export function buildMonthlyTrend(episodes: EpisodeRecord[], months = 6): Monthl
     const matches = episodes.filter((episode) => format(parseISO(episode.onset_at), "yyyy-MM") === monthKey);
     const avgSeverity = matches.length
       ? matches.reduce((total, episode) => total + episode.severity, 0) / matches.length
-      : 0;
+      : null;
 
     return {
       month: format(parseISO(`${monthKey}-01`), "MMM"),
       episodes: matches.length,
-      averageSeverity: Number(avgSeverity.toFixed(1)),
+      averageSeverity: avgSeverity === null ? null : Number(avgSeverity.toFixed(1)),
     };
   });
 }

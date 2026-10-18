@@ -8,10 +8,13 @@ import type {
 import { buildFilterQuery } from "@/lib/analytics/episodes";
 import {
   BUILTIN_PAIN_TYPE_OPTIONS,
+  isDurationStatusOption,
   isEpisodeFaceArea,
   isNumbnessOption,
+  isNumbnessTimingOption,
   isPainQualityOption,
   isThrobbingAssociationOption,
+  isYesNoUnsureOption,
 } from "@/lib/constants/episode-options";
 import type { FaceLocationKey, FaceMapPoint } from "@/lib/face-map/types";
 
@@ -40,12 +43,23 @@ type EpisodeQueryRow = {
   pain_qualities: string[] | null;
   pain_quality_other: string | null;
   had_numbness: string | null;
+  numbness_location: string | null;
+  numbness_onset_date: string | null;
+  numbness_onset_unknown: boolean | null;
+  numbness_after_procedure: string | null;
+  numbness_procedure_note: string | null;
+  numbness_timing: string | null;
   throbbing_associations: string[] | null;
   pain_pattern: EpisodeRecord["pain_pattern"];
   pulse_duration_seconds: number | null;
   face_area: string;
   severity: number;
-  duration_seconds: number;
+  functional_impact: number | null;
+  background_severity_before: number | null;
+  duration_status: string | null;
+  duration_seconds: number | null;
+  pain_changed_during: string | null;
+  pain_change_summary: string | null;
   onset_at: string;
   notes: string | null;
   treatment_history_changed: boolean | null;
@@ -96,13 +110,36 @@ function mapEpisodeRow(row: EpisodeQueryRow): EpisodeRecord {
     pain_qualities: (row.pain_qualities ?? []).filter(isPainQualityOption),
     pain_quality_other: row.pain_quality_other,
     had_numbness: row.had_numbness && isNumbnessOption(row.had_numbness) ? row.had_numbness : null,
+    numbness_location: row.numbness_location,
+    numbness_onset_date: row.numbness_onset_date,
+    numbness_onset_unknown: row.numbness_onset_unknown ?? false,
+    numbness_after_procedure:
+      row.numbness_after_procedure && isYesNoUnsureOption(row.numbness_after_procedure)
+        ? row.numbness_after_procedure
+        : null,
+    numbness_procedure_note: row.numbness_procedure_note,
+    numbness_timing:
+      row.numbness_timing && isNumbnessTimingOption(row.numbness_timing)
+        ? row.numbness_timing
+        : null,
     throbbing_associations: (row.throbbing_associations ?? []).filter(isThrobbingAssociationOption),
     pain_pattern: row.pain_pattern ?? "continuous",
     pulse_duration_seconds: row.pulse_duration_seconds,
     face_areas: derivedFaceAreas,
     face_points: facePoints,
     severity: row.severity,
+    functional_impact: row.functional_impact,
+    background_severity_before: row.background_severity_before,
+    duration_status:
+      row.duration_status && isDurationStatusOption(row.duration_status)
+        ? row.duration_status
+        : "known",
     duration_seconds: row.duration_seconds,
+    pain_changed_during:
+      row.pain_changed_during && isYesNoUnsureOption(row.pain_changed_during)
+        ? row.pain_changed_during
+        : null,
+    pain_change_summary: row.pain_change_summary,
     onset_at: row.onset_at,
     trigger_labels: (row.episode_triggers ?? [])
       .map((item) => item.trigger_options?.label)
@@ -132,12 +169,23 @@ export async function getEpisodesForUser(userId: string, filters: DashboardFilte
         pain_qualities,
         pain_quality_other,
         had_numbness,
+        numbness_location,
+        numbness_onset_date,
+        numbness_onset_unknown,
+        numbness_after_procedure,
+        numbness_procedure_note,
+        numbness_timing,
         throbbing_associations,
         pain_pattern,
         pulse_duration_seconds,
         face_area,
         severity,
+        functional_impact,
+        background_severity_before,
+        duration_status,
         duration_seconds,
+        pain_changed_during,
+        pain_change_summary,
         onset_at,
         notes,
         treatment_history_changed,

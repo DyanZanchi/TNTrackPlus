@@ -1,14 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { classifyFaceCoordinate, getUniqueDivisions } from "@/lib/face-map/classify";
 import { formatFacePointStatLabel, formatFacePointSummary } from "@/lib/face-map/format";
 import { FACE_AREA_LABELS } from "@/lib/constants/episode-options";
+import { getApprovedAnatomyAssets, getDefaultAnatomyAsset } from "@/lib/face-map/assets";
 import { FACE_DIVISION_COLORS } from "@/lib/face-map/constants";
 import { toNormalizedCoordinate } from "@/lib/face-map/geometry";
-import { btnSecondaryClass, cardClass } from "@/lib/design/ui-classes";
-import { FACE_COORDINATE_SCALE, FACE_MAP_IMAGE, type FaceMapPoint } from "@/lib/face-map/types";
+import { FACE_ZONES } from "@/lib/face-map/regions";
+import { btnSecondaryClass, cardClass, inputClass } from "@/lib/design/ui-classes";
+import { FACE_COORDINATE_SCALE, type FaceMapPoint } from "@/lib/face-map/types";
 import { cn } from "@/lib/utils";
 
 type FaceMapSelectorProps = {
@@ -16,9 +18,36 @@ type FaceMapSelectorProps = {
   onChange: (points: FaceMapPoint[]) => void;
 };
 
+function zoneCentroid(polygon: Array<[number, number]>) {
+  const total = polygon.reduce(
+    (sum, [x, y]) => ({ x: sum.x + x, y: sum.y + y }),
+    { x: 0, y: 0 },
+  );
+
+  return {
+    x: total.x / polygon.length,
+    y: total.y / polygon.length,
+  };
+}
+
 export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const approvedAssets = useMemo(() => getApprovedAnatomyAssets(), []);
+  const [selectedView, setSelectedView] = useState(getDefaultAnatomyAsset().view);
+  const selectedAsset =
+    approvedAssets.find((asset) => asset.view === selectedView) ?? getDefaultAnatomyAsset();
+  const locationOptions = useMemo(() => {
+    const unique = new Map<string, (typeof FACE_ZONES)[number]>();
+
+    for (const zone of FACE_ZONES) {
+      if (!unique.has(zone.location)) {
+        unique.set(zone.location, zone);
+      }
+    }
+
+    return [...unique.values()].sort((left, right) => left.label.localeCompare(right.label));
+  }, []);
 
   function handleImageClick(event: React.MouseEvent<HTMLDivElement>) {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -48,10 +77,48 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
     onChange([]);
   }
 
+  function addLocationFromList(location: string) {
+    const zone = FACE_ZONES.find((entry) => entry.location === location);
+
+    if (!zone) {
+      return;
+    }
+
+    const { x, y } = zoneCentroid(zone.polygon);
+    const result = classifyFaceCoordinate(x, y);
+
+    if (!result.ok) {
+      setError("That listed location could not be added. Tap the approved diagram instead.");
+      return;
+    }
+
+    setError(null);
+    onChange([...points, result.point]);
+  }
+
   const divisions = getUniqueDivisions(points);
 
   return (
     <div className="space-y-3">
+      {approvedAssets.length > 1 ? (
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="sr-only">Approved face diagram</legend>
+          {approvedAssets.map((asset) => (
+            <label key={asset.view} className="text-sm">
+              <input
+                type="radio"
+                name="anatomy_view"
+                value={asset.view}
+                checked={selectedAsset.view === asset.view}
+                onChange={() => setSelectedView(asset.view)}
+                className="mr-2"
+              />
+              {asset.view}
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
+
       <div
         ref={containerRef}
         className={cn(
@@ -60,13 +127,13 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
         )}
         onClick={handleImageClick}
         role="application"
-        aria-label="Tap anywhere on the face to mark pain locations"
+        aria-label={selectedAsset.accessibleDescription}
       >
         <Image
-          src={FACE_MAP_IMAGE.src}
-          alt="Front-facing face diagram for pain location selection"
-          width={FACE_MAP_IMAGE.width}
-          height={FACE_MAP_IMAGE.height}
+          src={selectedAsset.src}
+          alt={selectedAsset.accessibleDescription}
+          width={selectedAsset.width}
+          height={selectedAsset.height}
           className="h-auto w-full touch-manipulation select-none"
           priority
         />
@@ -107,7 +174,39 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
         </svg>
       </div>
 
-      {error ? <p className="text-sm text-[color:var(--danger)]">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-sm text-[color:var(--danger)]">
+          {error}
+        </p>
+      ) : null}
+
+      <label className="block max-w-md space-y-2">
+        <span className="text-sm font-semibold">Or choose a location from the list</span>
+        <select
+          className={inputClass}
+          defaultValue=""
+          aria-label="Add a pain location from the list"
+          onChange={(event) => {
+            if (event.target.value) {
+              addLocationFromList(event.target.value);
+              event.target.value = "";
+            }
+          }}
+        >
+          <option value="">Select a facial region</option>
+          {locationOptions.map((zone) => (
+            <option key={`${zone.location}-${zone.label}`} value={zone.location}>
+              {zone.label} ({FACE_AREA_LABELS[zone.division]})
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <p aria-live="polite" className="text-sm text-[color:var(--foreground)]">
+        {points.length
+          ? `Selected locations: ${formatFacePointSummary(points)}`
+          : "No locations selected yet."}
+      </p>
 
       {points.length ? (
         <div className={cn(cardClass, "space-y-3 p-4")}>
@@ -168,9 +267,9 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
       )}
 
       <p className="text-xs text-[color:var(--muted)]">
-        Left and right are from your perspective (as if you are the person in the image). Each tap saves
-        coordinates and maps to a trigeminal division (V1, V2, or V3) plus a location such as left
-        cheek or under the eye.
+        {selectedAsset.accessibleDescription} Each tap or list selection saves coordinates and maps
+        to a trigeminal division (V1, V2, or V3). Additional approved side and dental diagrams will
+        appear here when they are available. Unapproved views are omitted.
       </p>
     </div>
   );

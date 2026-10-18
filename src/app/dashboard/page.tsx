@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ExportButton } from "@/components/dashboard/export-button";
+import { BackgroundPainSummaryPanel } from "@/components/dashboard/background-pain-summary";
 import { FaceAreaChart } from "@/components/dashboard/face-area-chart";
 import { FilterBar } from "@/components/dashboard/filter-bar";
 import { MedicationChart } from "@/components/dashboard/medication-chart";
@@ -17,13 +17,25 @@ import {
   buildTriggerCounts,
   summarizeEpisodes,
 } from "@/lib/analytics/episodes";
+import { summarizeBackgroundPain } from "@/lib/analytics/background-pain";
+import { getBackgroundPainCheckInsForUser } from "@/lib/background-check-ins/queries";
+import { DEMO_BACKGROUND_CHECK_INS } from "@/lib/demo/background-check-ins";
 import { DEMO_EPISODES } from "@/lib/demo/episodes";
+import { DEMO_PROFILE } from "@/lib/demo/profile";
 import { getEpisodesForUser } from "@/lib/episodes/queries";
+import { getProfileForUser } from "@/lib/profile/queries";
 import { parseDashboardFilters } from "@/lib/analytics/filters";
-import { alertInfoClass, alertSuccessClass, btnPrimaryClass, cardClass } from "@/lib/design/ui-classes";
+import {
+  alertInfoClass,
+  alertSuccessClass,
+  btnPrimaryClass,
+  btnSecondaryClass,
+  cardClass,
+} from "@/lib/design/ui-classes";
 import { hasSupabaseEnv, isAuthBypassed } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { EpisodeRecord } from "@/lib/types/episodes";
+import type { BackgroundPainCheckIn, EpisodeRecord } from "@/lib/types/episodes";
+import type { PatientPainPattern } from "@/lib/types/profile";
 import { cn } from "@/lib/utils";
 
 type DashboardPageProps = {
@@ -35,6 +47,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const params = searchParams ? await searchParams : {};
   const created = params.created === "1";
   const treatmentChanged = params.treatment_changed === "1";
+  const backgroundCreated = params.background_created === "1";
   const welcome = params.welcome === "1";
   const demoMode = isAuthBypassed();
 
@@ -52,11 +65,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const { startIso, endIso } = buildFilterQuery(filters);
   let episodes: EpisodeRecord[] = [];
+  let backgroundCheckIns: BackgroundPainCheckIn[] = [];
+  let currentPainPattern: PatientPainPattern | null = null;
 
   if (demoMode) {
     episodes = DEMO_EPISODES.filter((episode) => {
       return episode.onset_at >= startIso && episode.onset_at <= endIso;
     }).sort((left, right) => right.onset_at.localeCompare(left.onset_at));
+    backgroundCheckIns = DEMO_BACKGROUND_CHECK_INS.filter((checkIn) => {
+      return checkIn.recorded_at >= startIso && checkIn.recorded_at <= endIso;
+    }).sort((left, right) => right.recorded_at.localeCompare(left.recorded_at));
+    currentPainPattern = DEMO_PROFILE.current_pain_pattern;
   } else {
     const supabase = await createSupabaseServerClient();
     const {
@@ -67,16 +86,30 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       redirect("/login");
     }
 
-    episodes = await getEpisodesForUser(user.id, filters);
+    const [userEpisodes, userBackgroundCheckIns, profile] = await Promise.all([
+      getEpisodesForUser(user.id, filters),
+      getBackgroundPainCheckInsForUser(user.id, filters),
+      getProfileForUser(user.id),
+    ]);
+
+    episodes = userEpisodes;
+    backgroundCheckIns = userBackgroundCheckIns;
+    currentPainPattern = profile.current_pain_pattern;
   }
   const summary = summarizeEpisodes(episodes);
+  const backgroundSummary = summarizeBackgroundPain(backgroundCheckIns);
   const trendData = buildMonthlyTrend(episodes, 6);
   const triggerData = buildTriggerCounts(episodes);
   const faceAreaData = buildFaceAreaCounts(episodes);
   const medicationData = buildMedicationCounts(episodes);
 
   const logCtaLabel =
-    summary.totalEpisodes === 0 ? "Log your first entry" : "Log new entry";
+    summary.totalEpisodes === 0 ? "Log your first episode" : "Log new episode";
+  const showEpisodeAction = currentPainPattern !== "continuous_background";
+  const showBackgroundAction =
+    currentPainPattern === "continuous_background" ||
+    currentPainPattern === "continuous_with_episodes" ||
+    currentPainPattern === "varies_unsure";
 
   return (
     <div className="space-y-8">
@@ -88,9 +121,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <ExportButton filters={filters} />
-        </div>
+        <Link href="/export" className={btnSecondaryClass}>
+          Export data
+        </Link>
       </div>
 
       {welcome ? (
@@ -108,6 +141,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         </p>
       ) : null}
 
+      {backgroundCreated ? (
+        <p className={alertSuccessClass}>
+          {demoMode
+            ? "Demo check-in accepted. Demo mode does not save data yet."
+            : "Background pain check-in saved successfully."}
+        </p>
+      ) : null}
+
       {treatmentChanged ? (
         <p className={alertInfoClass}>Treatment history updated with this entry.</p>
       ) : null}
@@ -118,20 +159,44 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         </p>
       ) : null}
 
+      <div className="grid gap-3 sm:grid-cols-2">
+        {showEpisodeAction ? (
+          <Link
+            href="/episodes/new"
+            className={cn(
+              btnPrimaryClass,
+              "flex min-h-14 w-full justify-center text-base shadow-[0_8px_28px_rgba(123,82,171,0.32)]",
+            )}
+          >
+            <IconPlus className="h-5 w-5" />
+            {logCtaLabel}
+          </Link>
+        ) : null}
+        {showBackgroundAction ? (
+          <Link
+            href="/check-ins/new"
+            className={cn(
+              showEpisodeAction ? btnSecondaryClass : btnPrimaryClass,
+              "flex min-h-14 w-full justify-center text-base",
+            )}
+          >
+            <IconPlus className="h-5 w-5" />
+            Check in background pain
+          </Link>
+        ) : null}
+      </div>
+
       <MetricsCards summary={summary} />
 
-      <Link
-        href="/episodes/new"
-        className={cn(
-          btnPrimaryClass,
-          "flex w-full min-h-14 justify-center text-base shadow-[0_8px_28px_rgba(123,82,171,0.32)]",
-        )}
-      >
-        <IconPlus className="h-5 w-5" />
-        {logCtaLabel}
-      </Link>
-
       <FilterBar filters={filters} />
+
+      {showBackgroundAction || backgroundCheckIns.length ? (
+        <BackgroundPainSummaryPanel
+          summary={backgroundSummary}
+          checkIns={backgroundCheckIns}
+        />
+      ) : null}
+
       <TrendsChart data={trendData} />
 
       <div className="grid gap-6 xl:grid-cols-2">

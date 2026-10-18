@@ -3,13 +3,18 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
+  DURATION_STATUS_LABELS,
+  DURATION_STATUS_OPTIONS,
   DURATION_UNIT_LABELS,
   DURATION_UNIT_MAX,
   DURATION_UNIT_OPTIONS,
   formatPainTypeLabels,
+  EXCLUSIVE_TRIGGER_OPTION_IDS,
   NO_MEDICATION_OPTION_ID,
   NUMBNESS_LABELS,
   NUMBNESS_OPTIONS,
+  NUMBNESS_TIMING_LABELS,
+  NUMBNESS_TIMING_OPTIONS,
   PAIN_PATTERN_LABELS,
   PAIN_PATTERN_OPTIONS,
   PAIN_QUALITY_LABELS,
@@ -17,21 +22,27 @@ import {
   THROBBING_ASSOCIATION_LABELS,
   THROBBING_ASSOCIATION_NONE,
   THROBBING_ASSOCIATION_OPTIONS,
+  YES_NO_UNSURE_LABELS,
+  YES_NO_UNSURE_OPTIONS,
 } from "@/lib/constants/episode-options";
 import { FaceMapSelector } from "@/components/face-map-selector";
 import { InlineTaxonomyPicker } from "@/components/inline-taxonomy-picker";
 import { TreatmentFields } from "@/components/profile/treatment-fields";
 import { IconTrigger } from "@/components/ui/icons";
 import { SeverityCard } from "@/components/ui/severity-card";
+import { FunctionalImpactField } from "@/components/ui/functional-impact-field";
 import type { EpisodeActionState } from "@/lib/episodes/actions";
 import type { TaxonomyActionState } from "@/lib/taxonomy/server";
 import type {
+  DurationStatusOption,
   DurationUnitOption,
   NumbnessOption,
+  NumbnessTimingOption,
   PainPatternOption,
   PainQualityOption,
   TaxonomyOption,
   ThrobbingAssociationOption,
+  YesNoUnsureOption,
 } from "@/lib/types/episodes";
 import type { FaceMapPoint } from "@/lib/face-map/types";
 import type { PatientProfile } from "@/lib/types/profile";
@@ -48,6 +59,7 @@ import {
 } from "@/lib/design/ui-classes";
 import { cn } from "@/lib/utils";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { FormInstructions } from "@/components/ui/form-instructions";
 
 type EpisodeFormProps = {
   profile: PatientProfile;
@@ -107,17 +119,22 @@ export function EpisodeForm({
   const [state, formAction] = useActionState<EpisodeActionState, FormData>(action, INITIAL_STATE);
   const [severity, setSeverity] = useState(5);
   const [painPattern, setPainPattern] = useState<PainPatternOption | "">("");
+  const [durationStatus, setDurationStatus] = useState<DurationStatusOption>("known");
   const [durationUnit, setDurationUnit] = useState<DurationUnitOption | "">("");
   const [durationAmount, setDurationAmount] = useState("");
   const [selectedPainQualities, setSelectedPainQualities] = useState<PainQualityOption[]>([]);
   const [hadNumbness, setHadNumbness] = useState<NumbnessOption | "">("");
+  const [numbnessOnsetUnknown, setNumbnessOnsetUnknown] = useState(false);
+  const [numbnessAfterProcedure, setNumbnessAfterProcedure] = useState<YesNoUnsureOption | "">("");
+  const [numbnessTiming, setNumbnessTiming] = useState<NumbnessTimingOption | "">("");
+  const [painChangedDuring, setPainChangedDuring] = useState<YesNoUnsureOption | "">("");
   const [throbbingAssociations, setThrobbingAssociations] = useState<ThrobbingAssociationOption[]>(
     [],
   );
   const [facePoints, setFacePoints] = useState<FaceMapPoint[]>([]);
   const [selectedTriggerIds, setSelectedTriggerIds] = useState<string[]>([]);
   const [selectedMedicationIds, setSelectedMedicationIds] = useState<string[]>([]);
-  const [medicationWithin24h, setMedicationWithin24h] = useState<"yes" | "no" | "">("");
+  const [medicationWithin24h, setMedicationWithin24h] = useState<"yes" | "no" | "not_sure" | "">("");
   const [treatmentHistoryChanged, setTreatmentHistoryChanged] = useState<"yes" | "no" | "">("");
   const selectableMedicationOptions = medicationOptions.filter(
     (option) => option.id !== NO_MEDICATION_OPTION_ID,
@@ -141,6 +158,7 @@ export function EpisodeForm({
 
   return (
     <form action={formAction} className="space-y-8">
+      <FormInstructions />
       {state.error ? <p className={alertErrorClass}>{state.error}</p> : null}
 
       <section className="space-y-4">
@@ -156,6 +174,24 @@ export function EpisodeForm({
         </label>
 
         <SeverityCard severity={severity} onChange={setSeverity} />
+        {profile.current_pain_pattern === "continuous_with_episodes" ? (
+          <label className="block max-w-xs space-y-2">
+            <span className={surveyPromptClass}>
+              Just before this episode started, how intense was your background pain?
+            </span>
+            <input
+              type="number"
+              name="background_severity_before"
+              min={1}
+              max={10}
+              step={1}
+              inputMode="numeric"
+              className={inputClass}
+            />
+            <p className={hintClass}>Optional. Enter a number from 1 to 10, or skip if you are not sure.</p>
+          </label>
+        ) : null}
+        <FunctionalImpactField subject="episode" />
       </section>
 
       <section className="space-y-4">
@@ -163,6 +199,9 @@ export function EpisodeForm({
           <span className={surveyPromptClass}>Pain location on face</span>
           <FaceMapSelector points={facePoints} onChange={setFacePoints} />
           <input type="hidden" name="face_points" value={JSON.stringify(facePoints)} />
+          {state.fieldErrors?.face_points ? (
+            <p className="text-sm text-[color:var(--danger)]">{state.fieldErrors.face_points}</p>
+          ) : null}
         </div>
       </section>
 
@@ -249,7 +288,9 @@ export function EpisodeForm({
                           </label>
                         ))}
                       </div>
-                      <p className={hintClass}>Select all that apply, or choose No.</p>
+                      <p className={hintClass}>
+                        Optional. Select all that apply, choose No, or leave this unanswered.
+                      </p>
                     </fieldset>
                   ) : null}
                 </div>
@@ -257,9 +298,12 @@ export function EpisodeForm({
             })}
           </div>
           <p className={hintClass}>Select all that apply.</p>
+          {state.fieldErrors?.pain_qualities ? (
+            <p className="text-sm text-[color:var(--danger)]">{state.fieldErrors.pain_qualities}</p>
+          ) : null}
           {selectedPainQualities.includes("other") ? (
             <label className="block space-y-2">
-              <span className={surveyPromptClass}>Other pain type</span>
+              <span className={surveyPromptClass}>Describe the pain in your own words</span>
               <input
                 type="text"
                 name="pain_quality_other"
@@ -300,6 +344,105 @@ export function EpisodeForm({
             ))}
           </div>
         </fieldset>
+        {hadNumbness === "yes" ? (
+          <div className="ml-4 space-y-4 border-l-2 border-[color:var(--primary)]/25 py-1 pl-4">
+            <label className="block space-y-2">
+              <span className={surveyPromptClass}>Where did you feel numbness?</span>
+              <input
+                type="text"
+                name="numbness_location"
+                maxLength={200}
+                className={inputClass}
+                placeholder="Optional. For example, right cheek or chin."
+              />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-2">
+                <span className={surveyPromptClass}>When did the numbness start?</span>
+                <input
+                  type="date"
+                  name="numbness_onset_date"
+                  disabled={numbnessOnsetUnknown}
+                  max={new Date().toISOString().slice(0, 10)}
+                  className={cn(inputClass, "max-w-xs")}
+                />
+              </label>
+              <label className="flex items-center gap-2 self-end pb-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="numbness_onset_unknown"
+                  value="true"
+                  checked={numbnessOnsetUnknown}
+                  onChange={(event) => setNumbnessOnsetUnknown(event.target.checked)}
+                />
+                I don&apos;t know the date
+              </label>
+            </div>
+            <fieldset className="space-y-3">
+              <legend className={surveyPromptClass}>
+                Did the numbness start after a procedure?
+              </legend>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {YES_NO_UNSURE_OPTIONS.map((option) => (
+                  <label
+                    key={option}
+                    className={cn(
+                      selectionTileClass,
+                      numbnessAfterProcedure === option && selectionTileSelectedClass,
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="numbness_after_procedure"
+                      value={option}
+                      checked={numbnessAfterProcedure === option}
+                      onChange={() => setNumbnessAfterProcedure(option)}
+                      className="sr-only"
+                    />
+                    {YES_NO_UNSURE_LABELS[option]}
+                  </label>
+                ))}
+              </div>
+              {numbnessAfterProcedure === "yes" ? (
+                <label className="block space-y-2">
+                  <span className={surveyPromptClass}>Which procedure, if you know?</span>
+                  <input
+                    type="text"
+                    name="numbness_procedure_note"
+                    maxLength={200}
+                    className={inputClass}
+                    placeholder="Optional"
+                  />
+                </label>
+              ) : null}
+            </fieldset>
+            <fieldset className="space-y-3">
+              <legend className={surveyPromptClass}>Is the numbness current or in the past?</legend>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {NUMBNESS_TIMING_OPTIONS.map((option) => (
+                  <label
+                    key={option}
+                    className={cn(
+                      selectionTileClass,
+                      numbnessTiming === option && selectionTileSelectedClass,
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="numbness_timing"
+                      value={option}
+                      checked={numbnessTiming === option}
+                      onChange={() => setNumbnessTiming(option)}
+                      className="sr-only"
+                    />
+                    {NUMBNESS_TIMING_LABELS[option]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <p className={hintClass}>These follow-up questions are optional.</p>
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-4">
@@ -354,54 +497,129 @@ export function EpisodeForm({
           <fieldset className="space-y-3 sm:col-span-2">
             <legend className={surveyPromptClass}>How long did this last?</legend>
             <div className="grid gap-2 sm:grid-cols-3">
-              {DURATION_UNIT_OPTIONS.map((option) => (
+              {DURATION_STATUS_OPTIONS.map((option) => (
                 <label
                   key={option}
                   className={cn(
                     selectionTileClass,
-                    durationUnit === option && selectionTileSelectedClass,
+                    durationStatus === option && selectionTileSelectedClass,
                   )}
                 >
                   <input
                     type="radio"
-                    name="duration_unit"
+                    name="duration_status"
                     value={option}
                     required
-                    checked={durationUnit === option}
+                    checked={durationStatus === option}
                     onChange={() => {
-                      setDurationUnit(option);
-                      setDurationAmount("");
+                      setDurationStatus(option);
+                      if (option !== "known") {
+                        setDurationUnit("");
+                        setDurationAmount("");
+                      }
                     }}
                     className="sr-only"
                   />
-                  {DURATION_UNIT_LABELS[option]}
+                  {DURATION_STATUS_LABELS[option]}
                 </label>
               ))}
             </div>
-            {durationUnit ? (
-              <div className="max-w-xs space-y-2">
-                <label className="block space-y-2">
-                  <span className={surveyPromptClass}>How many {durationUnit}?</span>
-                  <input
-                    type="number"
-                    name="duration_amount"
-                    value={durationAmount}
-                    onChange={(event) => setDurationAmount(event.target.value)}
-                    required
-                    min={1}
-                    max={DURATION_UNIT_MAX[durationUnit]}
-                    step={1}
-                    inputMode="numeric"
-                    className={inputClass}
-                  />
-                </label>
-                <p className={hintClass}>
-                  Enter a whole number from 1 to {DURATION_UNIT_MAX[durationUnit]}.
-                </p>
-              </div>
+            {durationStatus === "known" ? (
+              <>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {DURATION_UNIT_OPTIONS.map((option) => (
+                    <label
+                      key={option}
+                      className={cn(
+                        selectionTileClass,
+                        durationUnit === option && selectionTileSelectedClass,
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="duration_unit"
+                        value={option}
+                        required
+                        checked={durationUnit === option}
+                        onChange={() => {
+                          setDurationUnit(option);
+                          setDurationAmount("");
+                        }}
+                        className="sr-only"
+                      />
+                      {DURATION_UNIT_LABELS[option]}
+                    </label>
+                  ))}
+                </div>
+                {durationUnit ? (
+                  <div className="max-w-xs space-y-2">
+                    <label className="block space-y-2">
+                      <span className={surveyPromptClass}>How many {durationUnit}?</span>
+                      <input
+                        type="number"
+                        name="duration_amount"
+                        value={durationAmount}
+                        onChange={(event) => setDurationAmount(event.target.value)}
+                        required
+                        min={1}
+                        max={DURATION_UNIT_MAX[durationUnit]}
+                        step={1}
+                        inputMode="numeric"
+                        className={inputClass}
+                      />
+                    </label>
+                    <p className={hintClass}>
+                      Enter a whole number from 1 to {DURATION_UNIT_MAX[durationUnit]}.
+                    </p>
+                  </div>
+                ) : (
+                  <p className={hintClass}>Choose minutes, hours, or days, then enter how many.</p>
+                )}
+              </>
             ) : (
-              <p className={hintClass}>Choose minutes, hours, or days, then enter how many.</p>
+              <p className={hintClass}>
+                Unknown or ongoing episodes are saved without a duration. Missing length is not treated
+                as zero.
+              </p>
             )}
+          </fieldset>
+
+          <fieldset className="space-y-3 sm:col-span-2">
+            <legend className={surveyPromptClass}>Did the pain change during this episode?</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {YES_NO_UNSURE_OPTIONS.map((option) => (
+                <label
+                  key={option}
+                  className={cn(
+                    selectionTileClass,
+                    painChangedDuring === option && selectionTileSelectedClass,
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="pain_changed_during"
+                    value={option}
+                    checked={painChangedDuring === option}
+                    onChange={() => setPainChangedDuring(option)}
+                    className="sr-only"
+                  />
+                  {YES_NO_UNSURE_LABELS[option]}
+                </label>
+              ))}
+            </div>
+            {painChangedDuring === "yes" ? (
+              <label className="block space-y-2">
+                <span className={surveyPromptClass}>How did it change?</span>
+                <textarea
+                  name="pain_change_summary"
+                  rows={3}
+                  maxLength={300}
+                  className={cn(inputClass, "resize-y")}
+                  placeholder="Optional. For example, it started sharp and then settled."
+                />
+              </label>
+            ) : null}
+            <p className={hintClass}>Optional. Skip if you would rather keep this entry short.</p>
           </fieldset>
         </div>
       </section>
@@ -417,17 +635,22 @@ export function EpisodeForm({
           onSelectionChange={setSelectedTriggerIds}
           addAction={addTriggerAction}
           hideAction={hideTriggerAction}
+          helperText="Choose Spontaneous / no clear trigger or Not sure by itself, or select the triggers that applied. Use Other only for an additional trigger that is not listed."
+          exclusiveOptionIds={[...EXCLUSIVE_TRIGGER_OPTION_IDS]}
           demoMode={demoMode}
           grid
           tileIcon={IconTrigger}
         />
+        {state.fieldErrors?.trigger_ids ? (
+          <p className="text-sm text-[color:var(--danger)]">{state.fieldErrors.trigger_ids}</p>
+        ) : null}
 
         <fieldset className="space-y-3">
           <legend className={surveyPromptClass}>
             Did you take any medication in the past 24 hours?
           </legend>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {(["no", "yes"] as const).map((option) => (
+          <div className="grid gap-2 sm:grid-cols-3">
+            {(["no", "yes", "not_sure"] as const).map((option) => (
               <label
                 key={option}
                 className={cn(
@@ -443,16 +666,24 @@ export function EpisodeForm({
                   checked={medicationWithin24h === option}
                   onChange={() => {
                     setMedicationWithin24h(option);
-                    if (option === "no") {
+                    if (option !== "yes") {
                       setSelectedMedicationIds([]);
                     }
                   }}
                   className="sr-only"
                 />
-                {option === "yes" ? "Yes" : "No"}
+                {option === "yes" ? "Yes" : option === "no" ? "No" : "I don't know"}
               </label>
             ))}
           </div>
+          <p className={hintClass}>
+            Include prescription and over-the-counter medicine taken in the past 24 hours. Your
+            regular, rescue, and nonprescription list is saved on{" "}
+            <Link href="/medications" className="font-semibold text-[color:var(--primary)]">
+              Medications
+            </Link>
+            .
+          </p>
           {medicationWithin24h === "yes" ? (
             <InlineTaxonomyPicker
               name="medication_ids"
@@ -464,7 +695,7 @@ export function EpisodeForm({
               onSelectionChange={setSelectedMedicationIds}
               addAction={addMedicationAction}
               hideAction={hideMedicationAction}
-              helperText="Select all medications taken in the past 24 hours."
+              helperText="Select all medications taken in the past 24 hours. Add a custom name if yours is not listed."
               demoMode={demoMode}
             />
           ) : null}

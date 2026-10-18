@@ -23,11 +23,33 @@ export const BUILTIN_PAIN_TYPE_OPTIONS = [
     label: "Occipital Neuralgia",
     normalized_label: "occipital_neuralgia",
   },
+  {
+    id: "44444444-4444-4444-8444-000000000005",
+    label: "TMJ / TMD",
+    normalized_label: "tmj_tmd",
+  },
+  {
+    id: "44444444-4444-4444-8444-000000000006",
+    label: "Glossopharyngeal Neuralgia",
+    normalized_label: "glossopharyngeal_neuralgia",
+  },
+  {
+    id: "44444444-4444-4444-8444-000000000007",
+    label: "Burning Mouth Syndrome",
+    normalized_label: "burning_mouth_syndrome",
+  },
+  {
+    id: "44444444-4444-4444-8444-000000000008",
+    label: "Persistent Idiopathic Facial Pain",
+    normalized_label: "persistent_idiopathic_facial_pain",
+  },
 ] as const;
 
 export const PAIN_QUALITY_OPTIONS = [
   "sharp_stabbing",
+  "shooting",
   "electrical",
+  "pins_needles",
   "icicles",
   "burning",
   "throbbing",
@@ -37,7 +59,9 @@ export const PAIN_QUALITY_OPTIONS = [
 
 export const PAIN_QUALITY_LABELS: Record<(typeof PAIN_QUALITY_OPTIONS)[number], string> = {
   sharp_stabbing: "Sharp/Stabbing",
+  shooting: "Shooting",
   electrical: "Electrical",
+  pins_needles: "Pins and needles",
   icicles: "Icicles",
   burning: "Burning",
   throbbing: "Throbbing",
@@ -178,6 +202,55 @@ export function formatFaceAreaLabels(faceAreas: Array<keyof typeof EPISODE_FACE_
   return faceAreas.map((area) => EPISODE_FACE_AREA_LABELS[area]).join(", ");
 }
 
+export const NO_CLEAR_TRIGGER_OPTION_ID = "11111111-1111-4111-8111-000000000008";
+export const NOT_SURE_TRIGGER_OPTION_ID = "11111111-1111-4111-8111-000000000009";
+export const EXCLUSIVE_TRIGGER_OPTION_IDS = [
+  NO_CLEAR_TRIGGER_OPTION_ID,
+  NOT_SURE_TRIGGER_OPTION_ID,
+] as const;
+
+export const DURATION_STATUS_OPTIONS = ["known", "unknown", "ongoing"] as const;
+
+export const DURATION_STATUS_LABELS: Record<(typeof DURATION_STATUS_OPTIONS)[number], string> = {
+  known: "I know how long it lasted",
+  unknown: "I don't know",
+  ongoing: "It is still going on",
+};
+
+export function isDurationStatusOption(
+  value: string,
+): value is (typeof DURATION_STATUS_OPTIONS)[number] {
+  return (DURATION_STATUS_OPTIONS as readonly string[]).includes(value);
+}
+
+export const YES_NO_UNSURE_OPTIONS = ["yes", "no", "not_sure"] as const;
+
+export const YES_NO_UNSURE_LABELS: Record<(typeof YES_NO_UNSURE_OPTIONS)[number], string> = {
+  yes: "Yes",
+  no: "No",
+  not_sure: "Not sure",
+};
+
+export function isYesNoUnsureOption(
+  value: string,
+): value is (typeof YES_NO_UNSURE_OPTIONS)[number] {
+  return (YES_NO_UNSURE_OPTIONS as readonly string[]).includes(value);
+}
+
+export const NUMBNESS_TIMING_OPTIONS = ["current", "past", "not_sure"] as const;
+
+export const NUMBNESS_TIMING_LABELS: Record<(typeof NUMBNESS_TIMING_OPTIONS)[number], string> = {
+  current: "It is present now",
+  past: "I experienced it in the past",
+  not_sure: "Not sure",
+};
+
+export function isNumbnessTimingOption(
+  value: string,
+): value is (typeof NUMBNESS_TIMING_OPTIONS)[number] {
+  return (NUMBNESS_TIMING_OPTIONS as readonly string[]).includes(value);
+}
+
 export const NO_MEDICATION_OPTION_ID = "22222222-2222-4222-8222-000000000001";
 
 export const BUILTIN_TRIGGER_OPTIONS = [
@@ -220,6 +293,11 @@ export const BUILTIN_TRIGGER_OPTIONS = [
     id: "11111111-1111-4111-8111-000000000008",
     label: "Spontaneous / no clear trigger",
     normalized_label: "spontaneous",
+  },
+  {
+    id: NOT_SURE_TRIGGER_OPTION_ID,
+    label: "Not sure",
+    normalized_label: "not_sure",
   },
 ] as const;
 
