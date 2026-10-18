@@ -49,6 +49,19 @@ type OtherTherapyRow = {
   other_label: string | null;
 };
 
+function isMissingRelation(error: { code?: string; message?: string } | null) {
+  if (!error) {
+    return false;
+  }
+
+  const message = error.message ?? "";
+  return (
+    error.code === "PGRST205" ||
+    error.code === "42P01" ||
+    /schema cache|does not exist|could not find the table/i.test(message)
+  );
+}
+
 const EMPTY_PROFILE: PatientProfile = {
   user_id: "",
   age: null,
@@ -139,11 +152,11 @@ export async function getProfileForUser(userId: string): Promise<PatientProfile>
     throw new Error(historyResult.error.message);
   }
 
-  if (describedPatternsResult.error) {
+  if (describedPatternsResult.error && !isMissingRelation(describedPatternsResult.error)) {
     throw new Error(describedPatternsResult.error.message);
   }
 
-  if (headachePatternsResult.error) {
+  if (headachePatternsResult.error && !isMissingRelation(headachePatternsResult.error)) {
     throw new Error(headachePatternsResult.error.message);
   }
 

@@ -63,6 +63,14 @@ export async function getBackgroundPainCheckInsForUser(
     .order("recorded_at", { ascending: false });
 
   if (error) {
+    const message = error.message ?? "";
+    const missingTable =
+      error.code === "PGRST205" ||
+      error.code === "42P01" ||
+      /schema cache|does not exist|could not find the table/i.test(message);
+    if (missingTable) {
+      return [];
+    }
     throw new Error(error.message);
   }
 
