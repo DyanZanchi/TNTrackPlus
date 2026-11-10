@@ -115,6 +115,26 @@ export const PATIENT_DESCRIBED_PATTERNS: PatientDescribedPattern[] = [
     ],
   },
   {
+    key: "glossopharyngeal_neuropathic",
+    prompt:
+      "Numb, pricking, tingling, creeping, or pins-and-needles sensation in the throat, back of the nose, tongue, or tonsils.",
+    sourceQuestion: "Q8B",
+    reviewerCodes: [
+      {
+        system: "ICOP",
+        code: "4.2.2",
+        label: "Glossopharyngeal neuropathic pain",
+        versionNote: "Classificationofpainbysymptomsmodule.docx reviewer box",
+      },
+      {
+        system: "ICHD-3",
+        code: "13.2.2",
+        label: "Glossopharyngeal neuropathic pain",
+        versionNote: "Classificationofpainbysymptomsmodule.docx reviewer box",
+      },
+    ],
+  },
+  {
     key: "geniculate_sharp",
     prompt:
       "Sharp pain deep in the ear canal or in and around the ear that comes and goes in repeated bouts.",
@@ -129,6 +149,20 @@ export const PATIENT_DESCRIBED_PATTERNS: PatientDescribedPattern[] = [
     ],
   },
   {
+    key: "geniculate_neuropathic",
+    prompt:
+      "Numb, pricking, tingling, creeping, or pins-and-needles sensation deep in the ear canal or in and around the ear.",
+    sourceQuestion: "Q9B",
+    reviewerCodes: [
+      {
+        system: "ICHD-3",
+        code: "13.3.2",
+        label: "Painful nervus intermedius neuropathy",
+        versionNote: "Classificationofpainbysymptomsmodule.docx reviewer box",
+      },
+    ],
+  },
+  {
     key: "occipital_shooting",
     prompt:
       "Shooting or stabbing pain along the back of the head, neck, and scalp, typically on one side.",
@@ -138,6 +172,34 @@ export const PATIENT_DESCRIBED_PATTERNS: PatientDescribedPattern[] = [
         system: "ICHD-3",
         code: "13.4",
         label: "Occipital neuralgia",
+        versionNote: "Classificationofpainbysymptomsmodule.docx reviewer box",
+      },
+    ],
+  },
+  {
+    key: "raeder_eye_pain",
+    prompt:
+      "Deep and boring pain in or around the eye. Pain may also be sudden, burning, or shock-like.",
+    sourceQuestion: "Q10B",
+    reviewerCodes: [
+      {
+        system: "ICHD-3",
+        code: "13.9",
+        label: "Raeder’s syndrome",
+        versionNote: "Classificationofpainbysymptomsmodule.docx reviewer box",
+      },
+    ],
+  },
+  {
+    key: "ophthalmoplegic_neuropathy",
+    prompt:
+      "Repeated headaches and muscle weakness that comes and goes around one eye. This was previously called ophthalmoplegic migraine.",
+    sourceQuestion: "Q10C",
+    reviewerCodes: [
+      {
+        system: "ICHD-3",
+        code: "13.10",
+        label: "Recurrent painful ophthalmoplegic neuropathy",
         versionNote: "Classificationofpainbysymptomsmodule.docx reviewer box",
       },
     ],
@@ -177,8 +239,12 @@ export const DESCRIBED_PATTERN_KEYS = [
   "background_between_shocks",
   "postherpetic_neuropathic",
   "glossopharyngeal_sharp",
+  "glossopharyngeal_neuropathic",
   "geniculate_sharp",
+  "geniculate_neuropathic",
   "occipital_shooting",
+  "raeder_eye_pain",
+  "ophthalmoplegic_neuropathy",
   "burning_mouth",
   "persistent_idiopathic_facial",
 ] as const;
@@ -197,4 +263,8 @@ export function isDescribedPatternKey(value: string): value is (typeof DESCRIBED
 
 export function isDescribedPatternStatus(value: string): value is DescribedPatternStatus {
   return (DESCRIBED_PATTERN_STATUS_OPTIONS as readonly string[]).includes(value);
+}
+
+export function shockLikeFollowUpsApply(status: string | undefined) {
+  return status === "have_now" || status === "had_past";
 }

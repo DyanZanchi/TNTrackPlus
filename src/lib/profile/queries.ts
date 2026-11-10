@@ -1,5 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
+  isClassificationFollowUpKey,
+  isClassificationYesNo,
+  type ClassificationYesNo,
+} from "@/lib/classification/classification-followups";
+import {
   isDescribedPatternKey,
   isDescribedPatternStatus,
   type DescribedPatternStatus,
@@ -76,6 +81,7 @@ const EMPTY_PROFILE: PatientProfile = {
   other_therapies: [],
   relevant_history_events: [],
   described_patterns: [],
+  classification_followups: [],
   headache_patterns: [],
   updated_at: null,
 };
@@ -91,6 +97,7 @@ export async function getProfileForUser(userId: string): Promise<PatientProfile>
     painPatternResult,
     historyResult,
     describedPatternsResult,
+    classificationFollowupsResult,
     headachePatternsResult,
   ] =
     await Promise.all([
@@ -123,6 +130,10 @@ export async function getProfileForUser(userId: string): Promise<PatientProfile>
         .order("created_at", { ascending: true }),
       supabase.from("patient_described_patterns").select("pattern_key, status").eq("user_id", userId),
       supabase
+        .from("patient_classification_followups")
+        .select("answer_key, answer, detail_text")
+        .eq("user_id", userId),
+      supabase
         .from("patient_headache_patterns")
         .select("pattern_key, status, long_course, autonomic_symptoms")
         .eq("user_id", userId),
@@ -154,6 +165,13 @@ export async function getProfileForUser(userId: string): Promise<PatientProfile>
 
   if (describedPatternsResult.error && !isMissingRelation(describedPatternsResult.error)) {
     throw new Error(describedPatternsResult.error.message);
+  }
+
+  if (
+    classificationFollowupsResult.error &&
+    !isMissingRelation(classificationFollowupsResult.error)
+  ) {
+    throw new Error(classificationFollowupsResult.error.message);
   }
 
   if (headachePatternsResult.error && !isMissingRelation(headachePatternsResult.error)) {
@@ -205,6 +223,20 @@ export async function getProfileForUser(userId: string): Promise<PatientProfile>
       .map((entry) => ({
         pattern_key: entry.pattern_key,
         status: entry.status as DescribedPatternStatus,
+      })),
+    classification_followups: ((classificationFollowupsResult.data ?? []) as Array<{
+      answer_key: string;
+      answer: string;
+      detail_text: string | null;
+    }>)
+      .filter(
+        (entry) =>
+          isClassificationFollowUpKey(entry.answer_key) && isClassificationYesNo(entry.answer),
+      )
+      .map((entry) => ({
+        answer_key: entry.answer_key,
+        answer: entry.answer as ClassificationYesNo,
+        detail_text: entry.detail_text,
       })),
     headache_patterns: ((headachePatternsResult.data ?? []) as Array<{
       pattern_key: string;

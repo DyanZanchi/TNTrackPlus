@@ -97,4 +97,82 @@ describe("profileSchema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("keeps shock-cause follow-ups only when shock-like pain is present", () => {
+    const withShock = parseProfile({
+      age: "54",
+      gender: "female",
+      gender_other: "",
+      pain_type_ids: ["44444444-4444-4444-8444-000000000001"],
+      described_pattern_shock_like_paroxysmal: "have_now",
+      described_pattern_background_between_shocks: "have_now",
+      classification_shock_cause_ms: "yes",
+      classification_shock_cause_space_occupying: "no",
+      classification_shock_cause_other_condition: "no",
+      classification_shock_cause_vascular_compression: "yes",
+      classification_neuropathic_after_injury: "no",
+      classification_neuropathic_after_dental: "no",
+      classification_neuropathic_after_pain_procedure: "no",
+      classification_neuropathic_other_condition: "no",
+      classification_learned_cause_atypical: "no",
+      described_pattern_glossopharyngeal_neuropathic: "never",
+      described_pattern_raeder_eye_pain: "had_past",
+    });
+
+    expect(withShock.success).toBe(true);
+    if (withShock.success) {
+      expect(withShock.data.classification_followups).toEqual(
+        expect.arrayContaining([
+          {
+            answer_key: "shock_cause_ms",
+            answer: "yes",
+            detail_text: null,
+          },
+          {
+            answer_key: "learned_cause_atypical",
+            answer: "no",
+            detail_text: null,
+          },
+        ]),
+      );
+      expect(
+        withShock.data.described_patterns.some(
+          (pattern) => pattern.pattern_key === "glossopharyngeal_neuropathic",
+        ),
+      ).toBe(true);
+    }
+
+    const withoutShock = parseProfile({
+      age: "54",
+      gender: "female",
+      gender_other: "",
+      pain_type_ids: ["44444444-4444-4444-8444-000000000001"],
+      described_pattern_shock_like_paroxysmal: "never",
+      described_pattern_background_between_shocks: "have_now",
+      classification_shock_cause_ms: "yes",
+      classification_neuropathic_after_injury: "yes",
+      classification_neuropathic_other_condition: "no",
+      classification_learned_cause_atypical: "yes",
+      classification_learned_cause_atypical_detail: "unknown label",
+    });
+
+    expect(withoutShock.success).toBe(true);
+    if (withoutShock.success) {
+      expect(
+        withoutShock.data.described_patterns.some(
+          (pattern) => pattern.pattern_key === "background_between_shocks",
+        ),
+      ).toBe(false);
+      expect(
+        withoutShock.data.classification_followups.some((entry) =>
+          entry.answer_key.startsWith("shock_cause_"),
+        ),
+      ).toBe(false);
+      expect(
+        withoutShock.data.classification_followups.some(
+          (entry) => entry.answer_key === "learned_cause_atypical",
+        ),
+      ).toBe(false);
+    }
+  });
 });

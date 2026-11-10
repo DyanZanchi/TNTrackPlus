@@ -17,6 +17,14 @@ export const DEMO_PROFILE: PatientProfile = {
     { pattern_key: "shock_like_paroxysmal", status: "have_now" },
     { pattern_key: "background_between_shocks", status: "have_now" },
   ],
+  classification_followups: [
+    { answer_key: "shock_cause_vascular_compression", answer: "yes", detail_text: null },
+    { answer_key: "neuropathic_after_injury", answer: "no", detail_text: null },
+    { answer_key: "neuropathic_after_dental", answer: "no", detail_text: null },
+    { answer_key: "neuropathic_after_pain_procedure", answer: "no", detail_text: null },
+    { answer_key: "neuropathic_other_condition", answer: "no", detail_text: null },
+    { answer_key: "learned_cause_atypical", answer: "no", detail_text: null },
+  ],
   headache_patterns: [],
   relevant_history_events: [
     {

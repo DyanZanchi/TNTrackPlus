@@ -17,9 +17,18 @@ import {
 } from "@/lib/constants/profile-options";
 import { YES_NO_UNSURE_LABELS, YES_NO_UNSURE_OPTIONS } from "@/lib/constants/episode-options";
 import {
+  IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP,
+  NEUROPATHIC_CAUSE_FOLLOWUPS,
+  OTHER_NEUROPATHIC_FOLLOWUP,
+  SHOCK_CAUSE_FOLLOWUPS,
+  idiopathicFollowUpApplies,
+  type ClassificationYesNo,
+} from "@/lib/classification/classification-followups";
+import {
   DESCRIBED_PATTERN_STATUS_LABELS,
   DESCRIBED_PATTERN_STATUS_OPTIONS,
   PATIENT_DESCRIBED_PATTERNS,
+  shockLikeFollowUpsApply,
   type DescribedPatternStatus,
 } from "@/lib/classification/patient-described-patterns";
 import { FormInstructions } from "@/components/ui/form-instructions";
@@ -114,6 +123,20 @@ export function ProfileForm({
       profile.described_patterns.map((pattern) => [pattern.pattern_key, pattern.status]),
     ),
   );
+  const [classificationFollowups, setClassificationFollowups] = useState<
+    Partial<Record<string, ClassificationYesNo>>
+  >(
+    Object.fromEntries(
+      profile.classification_followups.map((entry) => [entry.answer_key, entry.answer]),
+    ),
+  );
+  const [classificationDetails, setClassificationDetails] = useState<Record<string, string>>(
+    Object.fromEntries(
+      profile.classification_followups
+        .filter((entry) => entry.detail_text)
+        .map((entry) => [entry.answer_key, entry.detail_text ?? ""]),
+    ),
+  );
   const [headachePatterns, setHeadachePatterns] = useState<
     Partial<Record<string, { status?: HeadachePatternStatus; longCourse?: "yes" | "no" | null }>>
   >(
@@ -123,6 +146,18 @@ export function ProfileForm({
         { status: pattern.status, longCourse: pattern.long_course },
       ]),
     ),
+  );
+  const shockStatus = describedPatterns.shock_like_paroxysmal;
+  const showShockFollowUps = shockLikeFollowUpsApply(shockStatus);
+  const showIdiopathicFollowUp = idiopathicFollowUpApplies({
+    neuropathic_after_injury: classificationFollowups.neuropathic_after_injury ?? "",
+    neuropathic_after_dental: classificationFollowups.neuropathic_after_dental ?? "",
+    neuropathic_after_pain_procedure:
+      classificationFollowups.neuropathic_after_pain_procedure ?? "",
+    neuropathic_other_condition: classificationFollowups.neuropathic_other_condition ?? "",
+  });
+  const patternByKey = Object.fromEntries(
+    PATIENT_DESCRIBED_PATTERNS.map((pattern) => [pattern.key, pattern]),
   );
   const [historySymptoms, setHistorySymptoms] = useState<
     Partial<Record<RelevantHistoryOption, YesNoUnsureOption | "">>
@@ -329,38 +364,228 @@ export function ProfileForm({
           </legend>
           <p className={hintClass}>
             Optional. These are descriptions of how pain can feel, not a diagnosis from the app.
-            Classification codes are not shown here and are not assigned automatically.
+            Classification codes are not shown here and are not assigned automatically. If pain comes
+            and goes, choose that you have it now.
           </p>
-          {PATIENT_DESCRIBED_PATTERNS.map((pattern) => (
-            <fieldset key={pattern.key} className="space-y-2 rounded-3xl border border-[color:var(--border)] p-4">
-              <legend className="text-sm font-medium">{pattern.prompt}</legend>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {DESCRIBED_PATTERN_STATUS_OPTIONS.map((status) => (
-                  <label
-                    key={status}
-                    className={cn(
-                      selectionTileClass,
-                      describedPatterns[pattern.key] === status && selectionTileSelectedClass,
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name={`described_pattern_${pattern.key}`}
-                      value={status}
-                      checked={describedPatterns[pattern.key] === status}
-                      onChange={() =>
-                        setDescribedPatterns((current) => ({
-                          ...current,
-                          [pattern.key]: status,
-                        }))
-                      }
-                      className="sr-only"
-                    />
-                    {DESCRIBED_PATTERN_STATUS_LABELS[status]}
-                  </label>
+
+          <DescribedPatternChoices
+            patternKey="shock_like_paroxysmal"
+            prompt={patternByKey.shock_like_paroxysmal.prompt}
+            value={describedPatterns.shock_like_paroxysmal}
+            onChange={(status) =>
+              setDescribedPatterns((current) => ({
+                ...current,
+                shock_like_paroxysmal: status,
+                ...(status === "never" ? { background_between_shocks: undefined } : {}),
+              }))
+            }
+          />
+
+          {showShockFollowUps ? (
+            <>
+              {shockStatus === "had_past" ? (
+                <fieldset className="space-y-2 rounded-3xl border border-[color:var(--border)] p-4">
+                  <legend className="text-sm font-medium">
+                    When you had that shock-like pain, did you have background pain between the
+                    shocks?
+                  </legend>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(
+                      [
+                        ["had_past", "Yes"],
+                        ["never", "No"],
+                      ] as const
+                    ).map(([status, label]) => (
+                      <label
+                        key={status}
+                        className={cn(
+                          selectionTileClass,
+                          describedPatterns.background_between_shocks === status &&
+                            selectionTileSelectedClass,
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="described_pattern_background_between_shocks"
+                          value={status}
+                          checked={describedPatterns.background_between_shocks === status}
+                          onChange={() =>
+                            setDescribedPatterns((current) => ({
+                              ...current,
+                              background_between_shocks: status,
+                            }))
+                          }
+                          className="sr-only"
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ) : (
+                <DescribedPatternChoices
+                  patternKey="background_between_shocks"
+                  prompt={patternByKey.background_between_shocks.prompt}
+                  value={describedPatterns.background_between_shocks}
+                  labels={{
+                    have_now: "Yes, I have it now",
+                    had_past: "Yes, I had it in the past, but not now",
+                    never: "No",
+                  }}
+                  onChange={(status) =>
+                    setDescribedPatterns((current) => ({
+                      ...current,
+                      background_between_shocks: status,
+                    }))
+                  }
+                />
+              )}
+
+              <fieldset className="space-y-3 rounded-3xl border border-[color:var(--border)] p-4">
+                <legend className="text-sm font-medium">
+                  Did a doctor or medical professional tell you your shock-like pain is or was caused
+                  by any of the following? Answer yes or no for each.
+                </legend>
+                {SHOCK_CAUSE_FOLLOWUPS.map((item) => (
+                  <YesNoFollowUp
+                    key={item.key}
+                    name={`classification_${item.key}`}
+                    prompt={item.prompt}
+                    value={classificationFollowups[item.key]}
+                    onChange={(answer) =>
+                      setClassificationFollowups((current) => ({
+                        ...current,
+                        [item.key]: answer,
+                      }))
+                    }
+                  />
                 ))}
-              </div>
+              </fieldset>
+            </>
+          ) : null}
+
+          <DescribedPatternChoices
+            patternKey="postherpetic_neuropathic"
+            prompt={patternByKey.postherpetic_neuropathic.prompt}
+            value={describedPatterns.postherpetic_neuropathic}
+            onChange={(status) =>
+              setDescribedPatterns((current) => ({
+                ...current,
+                postherpetic_neuropathic: status,
+              }))
+            }
+          />
+
+          <fieldset className="space-y-3 rounded-3xl border border-[color:var(--border)] p-4">
+            <legend className="text-sm font-medium">
+              Have you had facial pain that includes numbness, pricking, tingling, creeping, or pins
+              and needles after any of the following? Answer yes or no for each.
+            </legend>
+            {NEUROPATHIC_CAUSE_FOLLOWUPS.map((item) => (
+              <YesNoFollowUp
+                key={item.key}
+                name={`classification_${item.key}`}
+                prompt={item.prompt}
+                value={classificationFollowups[item.key]}
+                onChange={(answer) =>
+                  setClassificationFollowups((current) => ({
+                    ...current,
+                    [item.key]: answer,
+                  }))
+                }
+              />
+            ))}
+          </fieldset>
+
+          <fieldset className="space-y-3 rounded-3xl border border-[color:var(--border)] p-4">
+            <YesNoFollowUp
+              name={`classification_${OTHER_NEUROPATHIC_FOLLOWUP.key}`}
+              prompt={OTHER_NEUROPATHIC_FOLLOWUP.prompt}
+              value={classificationFollowups[OTHER_NEUROPATHIC_FOLLOWUP.key]}
+              onChange={(answer) =>
+                setClassificationFollowups((current) => ({
+                  ...current,
+                  [OTHER_NEUROPATHIC_FOLLOWUP.key]: answer,
+                }))
+              }
+            />
+            {classificationFollowups[OTHER_NEUROPATHIC_FOLLOWUP.key] === "yes" ? (
+              <label className="block space-y-2 text-sm font-semibold">
+                What is the cause of your pain?
+                <textarea
+                  name={`classification_${OTHER_NEUROPATHIC_FOLLOWUP.key}_detail`}
+                  value={classificationDetails[OTHER_NEUROPATHIC_FOLLOWUP.key] ?? ""}
+                  onChange={(event) =>
+                    setClassificationDetails((current) => ({
+                      ...current,
+                      [OTHER_NEUROPATHIC_FOLLOWUP.key]: event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  className={inputClass}
+                />
+              </label>
+            ) : null}
+          </fieldset>
+
+          {showIdiopathicFollowUp ? (
+            <fieldset className="space-y-3 rounded-3xl border border-[color:var(--border)] p-4">
+              <YesNoFollowUp
+                name={`classification_${IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key}`}
+                prompt={IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.prompt}
+                value={classificationFollowups[IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key]}
+                onChange={(answer) =>
+                  setClassificationFollowups((current) => ({
+                    ...current,
+                    [IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key]: answer,
+                  }))
+                }
+              />
+              {classificationFollowups[IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key] === "yes" ? (
+                <label className="block space-y-2 text-sm font-semibold">
+                  What is the cause of your pain?
+                  <textarea
+                    name={`classification_${IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key}_detail`}
+                    value={classificationDetails[IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key] ?? ""}
+                    onChange={(event) =>
+                      setClassificationDetails((current) => ({
+                        ...current,
+                        [IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key]: event.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className={inputClass}
+                  />
+                </label>
+              ) : null}
             </fieldset>
+          ) : null}
+
+          {(
+            [
+              "glossopharyngeal_sharp",
+              "glossopharyngeal_neuropathic",
+              "geniculate_sharp",
+              "geniculate_neuropathic",
+              "occipital_shooting",
+              "raeder_eye_pain",
+              "ophthalmoplegic_neuropathy",
+              "burning_mouth",
+              "persistent_idiopathic_facial",
+            ] as const
+          ).map((patternKey) => (
+            <DescribedPatternChoices
+              key={patternKey}
+              patternKey={patternKey}
+              prompt={patternByKey[patternKey].prompt}
+              value={describedPatterns[patternKey]}
+              onChange={(status) =>
+                setDescribedPatterns((current) => ({
+                  ...current,
+                  [patternKey]: status,
+                }))
+              }
+            />
           ))}
         </fieldset>
 
@@ -640,5 +865,79 @@ export function ProfileForm({
         ) : null}
       </div>
     </form>
+  );
+}
+
+function DescribedPatternChoices({
+  patternKey,
+  prompt,
+  value,
+  onChange,
+  labels = DESCRIBED_PATTERN_STATUS_LABELS,
+}: {
+  patternKey: string;
+  prompt: string;
+  value?: DescribedPatternStatus;
+  onChange: (status: DescribedPatternStatus) => void;
+  labels?: Record<DescribedPatternStatus, string>;
+}) {
+  return (
+    <fieldset className="space-y-2 rounded-3xl border border-[color:var(--border)] p-4">
+      <legend className="text-sm font-medium">{prompt}</legend>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {DESCRIBED_PATTERN_STATUS_OPTIONS.map((status) => (
+          <label
+            key={status}
+            className={cn(selectionTileClass, value === status && selectionTileSelectedClass)}
+          >
+            <input
+              type="radio"
+              name={`described_pattern_${patternKey}`}
+              value={status}
+              checked={value === status}
+              onChange={() => onChange(status)}
+              className="sr-only"
+            />
+            {labels[status]}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function YesNoFollowUp({
+  name,
+  prompt,
+  value,
+  onChange,
+}: {
+  name: string;
+  prompt: string;
+  value?: ClassificationYesNo;
+  onChange: (answer: ClassificationYesNo) => void;
+}) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-semibold">{prompt}</legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {(["yes", "no"] as const).map((answer) => (
+          <label
+            key={answer}
+            className={cn(selectionTileClass, value === answer && selectionTileSelectedClass)}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={answer}
+              checked={value === answer}
+              onChange={() => onChange(answer)}
+              className="sr-only"
+            />
+            {answer === "yes" ? "Yes" : "No"}
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }

@@ -11,8 +11,18 @@ import {
 } from "@/lib/constants/profile-options";
 import { YES_NO_UNSURE_OPTIONS } from "@/lib/constants/episode-options";
 import {
+  CLASSIFICATION_FOLLOWUP_KEYS,
+  CLASSIFICATION_YES_NO,
+  idiopathicFollowUpApplies,
+  OTHER_NEUROPATHIC_FOLLOWUP,
+  IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP,
+  NEUROPATHIC_CAUSE_FOLLOWUPS,
+  SHOCK_CAUSE_FOLLOWUPS,
+} from "@/lib/classification/classification-followups";
+import {
   DESCRIBED_PATTERN_KEYS,
   DESCRIBED_PATTERN_STATUS_OPTIONS,
+  shockLikeFollowUpsApply,
 } from "@/lib/classification/patient-described-patterns";
 import {
   HEADACHE_PATTERN_KEYS,
@@ -116,6 +126,19 @@ export const profileSchema = z
         }),
       )
       .default([]),
+    classification_followups: z
+      .array(
+        z.object({
+          answer_key: z.enum(CLASSIFICATION_FOLLOWUP_KEYS),
+          answer: z.enum(CLASSIFICATION_YES_NO),
+          detail_text: z
+            .string()
+            .trim()
+            .max(500, "Cause details must be 500 characters or less.")
+            .nullable(),
+        }),
+      )
+      .default([]),
     headache_patterns: z
       .array(
         z.object({
@@ -177,48 +200,99 @@ export const profileSchema = z
         }
       }
     });
+
+    values.classification_followups.forEach((entry, index) => {
+      if (entry.answer === "yes" && (entry.answer_key === "neuropathic_other_condition" || entry.answer_key === "learned_cause_atypical") && !entry.detail_text) {
+        context.addIssue({
+          code: "custom",
+          message: "Describe the cause of your pain.",
+          path: ["classification_followups", index, "detail_text"],
+        });
+      }
+    });
   })
-  .transform((values) => ({
-    age: values.age,
-    gender: values.gender,
-    gender_other: values.gender === "other" ? values.gender_other : "",
-    pain_pattern: values.pain_pattern ?? null,
-    clinician_evaluation_status: values.clinician_evaluation_status,
-    received_facial_pain_diagnosis:
-      values.clinician_evaluation_status === "yes"
-        ? values.received_facial_pain_diagnosis
-        : null,
-    additional_undiagnosed_pain:
-      values.clinician_evaluation_status === "yes" &&
-      values.received_facial_pain_diagnosis === "yes"
-        ? values.additional_undiagnosed_pain
-        : null,
-    pain_type_ids: values.pain_type_ids,
-    prior_treatments: values.prior_treatments.map((treatment) => ({
-      treatment_type: treatment,
-      other_label: treatment === "other" ? values.prior_treatment_other : null,
-    })),
-    other_therapies: values.other_therapies.map((therapy) => ({
-      therapy_type: therapy,
-      other_label: therapy === "other" ? values.other_therapy_other : null,
-    })),
-    described_patterns: values.described_patterns,
-    headache_patterns: values.headache_patterns,
-    relevant_history_events: values.relevant_history_events.map((event) => ({
-      event_type: event.event_type,
-      event_date:
-        isExclusiveHistoryOption(event.event_type) || event.event_date_unknown
+  .transform((values) => {
+    const shockStatus = values.described_patterns.find(
+      (pattern) => pattern.pattern_key === "shock_like_paroxysmal",
+    )?.status;
+    const describedPatterns = values.described_patterns.filter((pattern) => {
+      if (pattern.pattern_key === "background_between_shocks") {
+        return shockLikeFollowUpsApply(shockStatus);
+      }
+      return true;
+    });
+
+    const followUpByKey = Object.fromEntries(
+      values.classification_followups.map((entry) => [entry.answer_key, entry]),
+    );
+    const classificationFollowups = values.classification_followups.filter((entry) => {
+      if (SHOCK_CAUSE_FOLLOWUPS.some((item) => item.key === entry.answer_key)) {
+        return shockLikeFollowUpsApply(shockStatus);
+      }
+      if (entry.answer_key === IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key) {
+        return idiopathicFollowUpApplies({
+          neuropathic_after_injury: followUpByKey.neuropathic_after_injury?.answer ?? "",
+          neuropathic_after_dental: followUpByKey.neuropathic_after_dental?.answer ?? "",
+          neuropathic_after_pain_procedure:
+            followUpByKey.neuropathic_after_pain_procedure?.answer ?? "",
+          neuropathic_other_condition: followUpByKey.neuropathic_other_condition?.answer ?? "",
+        });
+      }
+      return true;
+    });
+
+    return {
+      age: values.age,
+      gender: values.gender,
+      gender_other: values.gender === "other" ? values.gender_other : "",
+      pain_pattern: values.pain_pattern ?? null,
+      clinician_evaluation_status: values.clinician_evaluation_status,
+      received_facial_pain_diagnosis:
+        values.clinician_evaluation_status === "yes"
+          ? values.received_facial_pain_diagnosis
+          : null,
+      additional_undiagnosed_pain:
+        values.clinician_evaluation_status === "yes" &&
+        values.received_facial_pain_diagnosis === "yes"
+          ? values.additional_undiagnosed_pain
+          : null,
+      pain_type_ids: values.pain_type_ids,
+      prior_treatments: values.prior_treatments.map((treatment) => ({
+        treatment_type: treatment,
+        other_label: treatment === "other" ? values.prior_treatment_other : null,
+      })),
+      other_therapies: values.other_therapies.map((therapy) => ({
+        therapy_type: therapy,
+        other_label: therapy === "other" ? values.other_therapy_other : null,
+      })),
+      described_patterns: describedPatterns,
+      classification_followups: classificationFollowups.map((entry) => ({
+        answer_key: entry.answer_key,
+        answer: entry.answer,
+        detail_text:
+          entry.answer === "yes" &&
+          (entry.answer_key === OTHER_NEUROPATHIC_FOLLOWUP.key ||
+            entry.answer_key === IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key)
+            ? entry.detail_text
+            : null,
+      })),
+      headache_patterns: values.headache_patterns,
+      relevant_history_events: values.relevant_history_events.map((event) => ({
+        event_type: event.event_type,
+        event_date:
+          isExclusiveHistoryOption(event.event_type) || event.event_date_unknown
+            ? null
+            : event.event_date,
+        event_date_unknown: isExclusiveHistoryOption(event.event_type)
+          ? false
+          : event.event_date_unknown,
+        symptoms_began_afterward: isExclusiveHistoryOption(event.event_type)
           ? null
-          : event.event_date,
-      event_date_unknown: isExclusiveHistoryOption(event.event_type)
-        ? false
-        : event.event_date_unknown,
-      symptoms_began_afterward: isExclusiveHistoryOption(event.event_type)
-        ? null
-        : event.symptoms_began_afterward,
-      notes: event.notes || null,
-    })),
-  }));
+          : event.symptoms_began_afterward,
+        notes: event.notes || null,
+      })),
+    };
+  });
 
 export function parseHeadachePatterns(formData: FormData) {
   return HEADACHE_PATTERN_KEYS.flatMap((patternKey) => {
@@ -259,6 +333,34 @@ export function parseDescribedPatterns(formData: FormData) {
   });
 }
 
+export function parseClassificationFollowups(formData: FormData) {
+  const keys = [
+    ...SHOCK_CAUSE_FOLLOWUPS.map((item) => item.key),
+    ...NEUROPATHIC_CAUSE_FOLLOWUPS.map((item) => item.key),
+    OTHER_NEUROPATHIC_FOLLOWUP.key,
+    IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key,
+  ];
+
+  return keys.flatMap((answerKey) => {
+    const answer = formData.get(`classification_${answerKey}`);
+    if (answer !== "yes" && answer !== "no") {
+      return [];
+    }
+
+    const detailRaw = formData.get(`classification_${answerKey}_detail`);
+    const detailText =
+      typeof detailRaw === "string" && detailRaw.trim() ? detailRaw.trim() : null;
+
+    return [
+      {
+        answer_key: answerKey,
+        answer,
+        detail_text: detailText,
+      },
+    ];
+  });
+}
+
 export function parseRelevantHistoryEvents(formData: FormData) {
   return parseCheckboxList(formData.getAll("relevant_history_types")).map((eventType) => ({
     event_type: eventType,
@@ -285,6 +387,7 @@ export function parseProfileFormData(formData: FormData) {
     other_therapy_other: emptyToUndefined(formData.get("other_therapy_other")),
     relevant_history_events: parseRelevantHistoryEvents(formData),
     described_patterns: parseDescribedPatterns(formData),
+    classification_followups: parseClassificationFollowups(formData),
     headache_patterns: parseHeadachePatterns(formData),
   });
 }

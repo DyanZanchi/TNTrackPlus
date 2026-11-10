@@ -7,6 +7,7 @@ import {
   PRIOR_TREATMENT_OPTIONS,
   RELEVANT_HISTORY_OPTIONS,
 } from "@/lib/constants/profile-options";
+import type { ClassificationYesNo } from "@/lib/classification/classification-followups";
 import type { DescribedPatternStatus } from "@/lib/classification/patient-described-patterns";
 import type { HeadachePatternStatus } from "@/lib/classification/headache-patterns";
 import type { YesNoUnsureOption } from "@/lib/types/episodes";
@@ -52,6 +53,11 @@ export type PatientProfile = {
   described_patterns: Array<{
     pattern_key: string;
     status: DescribedPatternStatus;
+  }>;
+  classification_followups: Array<{
+    answer_key: string;
+    answer: ClassificationYesNo;
+    detail_text: string | null;
   }>;
   headache_patterns: Array<{
     pattern_key: string;

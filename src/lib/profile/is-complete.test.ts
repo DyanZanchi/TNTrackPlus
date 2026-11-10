@@ -16,6 +16,7 @@ const emptyProfile: PatientProfile = {
   other_therapies: [],
   relevant_history_events: [],
   described_patterns: [],
+  classification_followups: [],
   headache_patterns: [],
   updated_at: null,
 };

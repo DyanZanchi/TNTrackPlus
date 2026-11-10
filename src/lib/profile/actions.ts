@@ -131,6 +131,33 @@ export async function saveProfileAction(
     }
   }
 
+  const { error: followupDeleteError } = await supabase
+    .from("patient_classification_followups")
+    .delete()
+    .eq("user_id", user.id);
+
+  if (followupDeleteError && !/does not exist|schema cache|could not find the table/i.test(followupDeleteError.message)) {
+    return { error: followupDeleteError.message };
+  }
+
+  if (data.classification_followups.length && !followupDeleteError) {
+    const { error: followupInsertError } = await supabase
+      .from("patient_classification_followups")
+      .insert(
+        data.classification_followups.map((entry) => ({
+          user_id: user.id,
+          answer_key: entry.answer_key,
+          answer: entry.answer,
+          detail_text: entry.detail_text,
+          updated_at: now,
+        })),
+      );
+
+    if (followupInsertError) {
+      return { error: followupInsertError.message };
+    }
+  }
+
   const { error: headacheDeleteError } = await supabase
     .from("patient_headache_patterns")
     .delete()
