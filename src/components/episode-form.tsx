@@ -63,6 +63,18 @@ import { cn } from "@/lib/utils";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { FormInstructions } from "@/components/ui/form-instructions";
 
+const TRIGGER_IMAGES: Record<string, string> = {
+  not_sure: "/images/triggers/not-sure.jpg",
+  spontaneous: "/images/triggers/spontaneous.jpg",
+  brushing_teeth: "/images/triggers/brushing-teeth.jpg",
+  chewing: "/images/triggers/chewing.jpg",
+  cold_air: "/images/triggers/cold-air.jpg",
+  stress: "/images/triggers/stress.jpg",
+  talking: "/images/triggers/talking-v2.jpg",
+  touching_face: "/images/triggers/touching-face.jpg",
+  washing_face: "/images/triggers/washing-face.jpg",
+};
+
 type EpisodeFormProps = {
   profile: PatientProfile;
   triggerOptions: TaxonomyOption[];
@@ -671,7 +683,8 @@ export function EpisodeForm({
           hideAction={hideTriggerAction}
           exclusiveOptionIds={[...EXCLUSIVE_TRIGGER_OPTION_IDS]}
           demoMode={demoMode}
-          grid
+          presentation="circles"
+          optionImages={TRIGGER_IMAGES}
           tileIcon={IconTrigger}
         />
         {state.fieldErrors?.trigger_ids ? (

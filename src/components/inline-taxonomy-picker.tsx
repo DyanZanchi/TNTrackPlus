@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState, useTransition } from "react";
 import { IconTag, type IconProps } from "@/components/ui/icons";
 import {
@@ -35,6 +36,8 @@ type InlineTaxonomyPickerProps = {
   titleClass?: string;
   demoMode: boolean;
   grid?: boolean;
+  presentation?: "default" | "circles";
+  optionImages?: Partial<Record<string, string>>;
   tileIcon?: React.ComponentType<IconProps>;
   exclusiveOptionId?: string;
   exclusiveOptionIds?: string[];
@@ -80,6 +83,8 @@ export function InlineTaxonomyPicker({
   titleClass = labelClass,
   demoMode,
   grid = false,
+  presentation = "default",
+  optionImages,
   tileIcon: TileIcon = IconTag,
   exclusiveOptionId,
   exclusiveOptionIds,
@@ -91,6 +96,7 @@ export function InlineTaxonomyPicker({
   const [isPending, startTransition] = useTransition();
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const circles = presentation === "circles";
 
   function toggleOption(id: string) {
     if (exclusiveIds.includes(id)) {
@@ -171,25 +177,66 @@ export function InlineTaxonomyPicker({
     <div className="space-y-3">
       <span className={titleClass}>{title}</span>
 
-      <div className={cn(grid ? "grid gap-2 sm:grid-cols-2 lg:grid-cols-3" : "grid gap-2")}>
+      <div
+        className={cn(
+          circles
+            ? "grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5"
+            : grid
+              ? "grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
+              : "grid gap-2",
+        )}
+      >
         {options.map((option) => {
           const isSelected = selectedIdSet.has(option.id);
           const isCustom = option.user_id !== null;
+          const optionImage = optionImages?.[option.normalized_label];
 
           return (
-            <div key={option.id} className={cn("group relative", grid && "min-h-[5.5rem]")}>
+            <div
+              key={option.id}
+              className={cn(
+                "group relative",
+                grid && !circles && "min-h-[5.5rem]",
+                circles && "min-h-[6.5rem]",
+              )}
+            >
               <button
                 type="button"
                 onClick={() => toggleOption(option.id)}
                 className={cn(
-                  selectionTileClass,
-                  "h-full w-full",
-                  grid && selectionGridTileClass,
-                  isSelected && selectionTileSelectedClass,
+                  circles
+                    ? "flex h-full w-full flex-col items-center justify-start gap-2 rounded-2xl px-2 py-2 text-center text-sm font-medium text-[color:var(--foreground)] transition-all duration-200 hover:bg-[color:var(--accent)]/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/30 active:scale-[0.98]"
+                    : selectionTileClass,
+                  !circles && "h-full w-full",
+                  grid && !circles && selectionGridTileClass,
+                  isSelected &&
+                    (circles
+                      ? "bg-[color:var(--accent)]/60 text-[color:var(--primary)]"
+                      : selectionTileSelectedClass),
                 )}
                 aria-pressed={isSelected}
               >
-                {grid ? (
+                {circles ? (
+                  <span
+                    className={cn(
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[color:var(--border)] bg-white text-[color:var(--primary)] shadow-sm transition-all duration-200 group-hover:border-[color:var(--accent-strong)] group-hover:shadow-md",
+                      isSelected &&
+                        "!border-[color:var(--primary)] !bg-[color:var(--primary)] !text-white shadow-[0_6px_18px_rgba(123,82,171,0.28)]",
+                    )}
+                  >
+                    {optionImage ? (
+                      <Image
+                        src={optionImage}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <TileIcon className="h-5 w-5" />
+                    )}
+                  </span>
+                ) : grid ? (
                   <span className="text-[color:var(--primary)]">
                     <TileIcon className="mx-auto h-5 w-5" />
                   </span>
@@ -204,7 +251,14 @@ export function InlineTaxonomyPicker({
                     aria-hidden="true"
                   />
                 )}
-                <span className={cn(grid && "text-xs leading-tight")}>{option.label}</span>
+                <span
+                  className={cn(
+                    grid && !circles && "text-xs leading-tight",
+                    circles && "max-w-[9rem] text-xs leading-snug sm:text-sm",
+                  )}
+                >
+                  {option.label}
+                </span>
               </button>
 
               {isCustom && !demoMode ? (
