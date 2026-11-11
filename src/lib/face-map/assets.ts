@@ -1,16 +1,14 @@
-import { FACE_MAP_IMAGE } from "@/lib/face-map/types";
-
-export const FACE_VIEWS = ["front", "left-profile", "right-profile", "teeth"] as const;
-
-export type FaceView = (typeof FACE_VIEWS)[number];
+import { FACE_MAP_IMAGE, type FaceView } from "@/lib/face-map/types";
 
 export type AnatomyAsset = {
   view: FaceView;
+  label: string;
   src: string;
   width: number;
   height: number;
   approved: boolean;
   version: string;
+  flipHorizontal?: boolean;
   sourceAttribution?: string;
   accessibleDescription: string;
 };
@@ -18,6 +16,7 @@ export type AnatomyAsset = {
 export const ANATOMY_ASSETS: AnatomyAsset[] = [
   {
     view: "front",
+    label: "Front",
     src: FACE_MAP_IMAGE.src,
     width: FACE_MAP_IMAGE.width,
     height: FACE_MAP_IMAGE.height,
@@ -29,30 +28,37 @@ export const ANATOMY_ASSETS: AnatomyAsset[] = [
   },
   {
     view: "left-profile",
-    src: "",
-    width: 0,
-    height: 0,
-    approved: false,
-    version: "unapproved",
-    accessibleDescription: "Left-profile face diagram is not available yet.",
+    label: "Left side",
+    src: "/images/face-map-side.jpg",
+    width: 1024,
+    height: 768,
+    approved: true,
+    version: "side-v1",
+    flipHorizontal: true,
+    sourceAttribution: "Original generated TN Track+ side-facing diagram",
+    accessibleDescription: "Left side of the face.",
   },
   {
     view: "right-profile",
-    src: "",
-    width: 0,
-    height: 0,
-    approved: false,
-    version: "unapproved",
-    accessibleDescription: "Right-profile face diagram is not available yet.",
+    label: "Right side",
+    src: "/images/face-map-side.jpg",
+    width: 1024,
+    height: 768,
+    approved: true,
+    version: "side-v1",
+    sourceAttribution: "Original generated TN Track+ side-facing diagram",
+    accessibleDescription: "Right side of the face.",
   },
   {
     view: "teeth",
-    src: "",
-    width: 0,
-    height: 0,
-    approved: false,
-    version: "unapproved",
-    accessibleDescription: "Dental chart is not available yet.",
+    label: "Teeth",
+    src: "/images/face-map-teeth-closed.jpg",
+    width: 1024,
+    height: 768,
+    approved: true,
+    version: "teeth-v2-closed",
+    sourceAttribution: "Original generated TN Track+ dental diagram",
+    accessibleDescription: "Front view of the upper and lower teeth.",
   },
 ];
 

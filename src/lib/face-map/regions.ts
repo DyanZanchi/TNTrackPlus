@@ -388,3 +388,161 @@ function expandSymmetricZones(templates: ZoneTemplate[]): FaceZone[] {
 }
 
 export const FACE_ZONES: FaceZone[] = expandSymmetricZones(ZONE_TEMPLATES);
+
+/**
+ * Regions calibrated to face-map-side.jpg (1024×768), normalized to 1000×1000.
+ * The source image faces right; the left-side view mirrors these polygons.
+ */
+export const SIDE_FACE_ZONES: FaceZone[] = [
+  {
+    location: "left_forehead",
+    label: "Left forehead",
+    division: "v1",
+    polygon: [
+      [476, 49],
+      [646, 53],
+      [695, 286],
+      [630, 322],
+      [515, 308],
+    ],
+  },
+  {
+    location: "left_eye",
+    label: "Left eye area",
+    division: "v1",
+    polygon: [
+      [606, 275],
+      [695, 276],
+      [705, 373],
+      [612, 371],
+    ],
+  },
+  {
+    location: "left_nose",
+    label: "Left side of nose",
+    division: "v2",
+    polygon: [
+      [695, 286],
+      [739, 454],
+      [706, 495],
+      [660, 450],
+      [651, 368],
+    ],
+  },
+  {
+    location: "left_cheek",
+    label: "Left cheek",
+    division: "v2",
+    polygon: [
+      [469, 330],
+      [645, 328],
+      [691, 463],
+      [657, 551],
+      [479, 532],
+    ],
+  },
+  {
+    location: "upper_lip",
+    label: "Upper lip",
+    division: "v2",
+    polygon: [
+      [656, 488],
+      [704, 489],
+      [710, 530],
+      [658, 530],
+    ],
+  },
+  {
+    location: "lower_lip",
+    label: "Lower lip",
+    division: "v3",
+    polygon: [
+      [651, 530],
+      [705, 530],
+      [693, 574],
+      [650, 570],
+    ],
+  },
+  {
+    location: "left_ear",
+    label: "Left ear area",
+    division: "v3",
+    polygon: [
+      [388, 300],
+      [484, 301],
+      [489, 486],
+      [391, 481],
+    ],
+  },
+  {
+    location: "left_jaw",
+    label: "Left jaw",
+    division: "v3",
+    polygon: [
+      [466, 484],
+      [651, 548],
+      [665, 650],
+      [564, 680],
+      [449, 611],
+    ],
+  },
+  {
+    location: "chin",
+    label: "Chin",
+    division: "v3",
+    polygon: [
+      [647, 566],
+      [700, 568],
+      [680, 649],
+      [638, 651],
+    ],
+  },
+];
+
+/** Regions calibrated to the visible teeth in face-map-teeth.jpg. */
+export const DENTAL_ZONES: FaceZone[] = [
+  {
+    location: "right_upper_teeth",
+    label: "Upper-right teeth",
+    division: "v2",
+    polygon: [
+      [165, 285],
+      [500, 285],
+      [500, 460],
+      [165, 460],
+    ],
+  },
+  {
+    location: "left_upper_teeth",
+    label: "Upper-left teeth",
+    division: "v2",
+    polygon: [
+      [500, 285],
+      [850, 285],
+      [850, 460],
+      [500, 460],
+    ],
+  },
+  {
+    location: "right_lower_teeth",
+    label: "Lower-right teeth",
+    division: "v3",
+    polygon: [
+      [165, 460],
+      [500, 460],
+      [500, 680],
+      [165, 680],
+    ],
+  },
+  {
+    location: "left_lower_teeth",
+    label: "Lower-left teeth",
+    division: "v3",
+    polygon: [
+      [500, 460],
+      [850, 460],
+      [850, 680],
+      [500, 680],
+    ],
+  },
+];

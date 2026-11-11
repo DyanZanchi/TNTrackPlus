@@ -1,9 +1,21 @@
 import { FACE_MIDLINE_X } from "@/lib/face-map/constants";
 import { getTrigeminalDivision } from "@/lib/face-map/divisions";
 import { isPointInEllipse, isPointInPolygon, polygonArea } from "@/lib/face-map/geometry";
-import { FACE_BOUNDS, FACE_BOUNDARY, FACE_ZONES } from "@/lib/face-map/regions";
+import {
+  DENTAL_ZONES,
+  FACE_BOUNDS,
+  FACE_BOUNDARY,
+  FACE_ZONES,
+  SIDE_FACE_ZONES,
+} from "@/lib/face-map/regions";
 import type { FaceAreaOption } from "@/lib/types/episodes";
-import type { FaceLocationKey, FaceMapPoint } from "@/lib/face-map/types";
+import {
+  FACE_COORDINATE_SCALE,
+  type FaceLocationKey,
+  type FaceMapPoint,
+  type FaceView,
+  type FaceZone,
+} from "@/lib/face-map/types";
 
 type ClassifyResult =
   | { ok: true; point: FaceMapPoint }
@@ -43,6 +55,7 @@ function buildFaceMapPoint(
   location: FaceLocationKey,
   label: string,
   division: FaceAreaOption,
+  view: FaceView = "front",
 ): FaceMapPoint {
   const patientLocation = toPatientPerspective(location, label);
 
@@ -52,6 +65,23 @@ function buildFaceMapPoint(
     division,
     location: patientLocation.location,
     label: patientLocation.label,
+    view,
+  };
+}
+
+function buildDirectMapPoint(
+  x: number,
+  y: number,
+  zone: FaceZone,
+  view: FaceView,
+): FaceMapPoint {
+  return {
+    x,
+    y,
+    division: zone.division,
+    location: zone.location,
+    label: zone.label,
+    view,
   };
 }
 
@@ -240,7 +270,51 @@ function isInsideFace(x: number, y: number) {
   );
 }
 
-export function classifyFaceCoordinate(x: number, y: number): ClassifyResult {
+function findSmallestMatchingZone(zones: FaceZone[], x: number, y: number) {
+  const matches = zones.filter((zone) => isPointInPolygon([x, y], zone.polygon));
+
+  return matches.sort((left, right) => polygonArea(left.polygon) - polygonArea(right.polygon))[0] ?? null;
+}
+
+export function classifyFaceCoordinate(
+  x: number,
+  y: number,
+  view: FaceView = "front",
+): ClassifyResult {
+  if (view === "teeth") {
+    const zone = findSmallestMatchingZone(DENTAL_ZONES, x, y);
+
+    return zone
+      ? { ok: true, point: buildDirectMapPoint(x, y, zone, view) }
+      : { ok: false, reason: "outside_face" };
+  }
+
+  if (view === "left-profile" || view === "right-profile") {
+    const lookupX = view === "left-profile" ? FACE_COORDINATE_SCALE - x : x;
+    const zone = findSmallestMatchingZone(SIDE_FACE_ZONES, lookupX, y);
+
+    if (!zone) {
+      return { ok: false, reason: "outside_face" };
+    }
+
+    if (view === "left-profile") {
+      return { ok: true, point: buildDirectMapPoint(x, y, zone, view) };
+    }
+
+    const mirrored = toPatientPerspective(zone.location, zone.label);
+    return {
+      ok: true,
+      point: {
+        x,
+        y,
+        division: zone.division,
+        location: mirrored.location,
+        label: mirrored.label,
+        view,
+      },
+    };
+  }
+
   if (!isInsideFace(x, y)) {
     return { ok: false, reason: "outside_face" };
   }

@@ -15,7 +15,7 @@ import {
   YES_NO_UNSURE_OPTIONS,
 } from "@/lib/constants/episode-options";
 import { getUniqueDivisions } from "@/lib/face-map/classify";
-import { FACE_LOCATION_KEYS } from "@/lib/face-map/types";
+import { FACE_LOCATION_KEYS, FACE_VIEWS } from "@/lib/face-map/types";
 import { hasExclusiveNoClearTrigger } from "@/lib/taxonomy/shared";
 
 const durationPattern = /^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
@@ -37,6 +37,7 @@ const facePointSchema = z.object({
   division: z.enum(FACE_AREA_OPTIONS),
   location: z.enum(FACE_LOCATION_KEYS),
   label: z.string().min(1),
+  view: z.enum(FACE_VIEWS).optional(),
 });
 
 function nullishToString(value: unknown) {
@@ -110,7 +111,7 @@ export const episodeSchema = z
       (value) => parseFacePoints(value as FormDataEntryValue | null),
       z
         .array(facePointSchema)
-        .min(1, "Tap at least one point on the face.")
+        .min(1, "Choose at least one pain location.")
         .or(z.literal(null)),
     ),
     severity: z.coerce
@@ -187,7 +188,7 @@ export const episodeSchema = z
     if (values.face_points === null) {
       context.addIssue({
         code: "custom",
-        message: "Tap at least one point on the face.",
+        message: "Choose at least one pain location.",
         path: ["face_points"],
       });
     }

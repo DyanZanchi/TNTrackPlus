@@ -43,7 +43,7 @@ export const choiceChipClass =
   "inline-flex cursor-pointer items-center justify-center rounded-full border border-[color:var(--border)] bg-white px-3.5 py-1.5 text-sm font-medium text-[color:var(--foreground)] transition-colors hover:border-[color:var(--accent-strong)] hover:bg-[color:var(--accent)]/50";
 
 export const choiceChipSelectedClass =
-  "border-[color:var(--primary)] bg-[color:var(--primary)] text-white hover:bg-[color:var(--primary-hover)] hover:border-[color:var(--primary-hover)]";
+  "!border-[color:var(--primary)] !bg-[color:var(--primary)] !text-white hover:!border-[color:var(--primary-hover)] hover:!bg-[color:var(--primary-hover)]";
 
 /** Indented follow-up block under a parent question. */
 export const followUpIndentClass =

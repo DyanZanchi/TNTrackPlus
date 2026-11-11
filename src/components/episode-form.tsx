@@ -182,7 +182,7 @@ export function EpisodeForm({
 
       <section className="space-y-4">
         <div className="space-y-2">
-          <span className={surveyPromptClass}>Pain location on face</span>
+          <span className={surveyPromptClass}>Where did you feel pain?</span>
           <FaceMapSelector points={facePoints} onChange={setFacePoints} />
           <input type="hidden" name="face_points" value={JSON.stringify(facePoints)} />
           {state.fieldErrors?.face_points ? (

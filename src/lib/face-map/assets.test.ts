@@ -2,23 +2,17 @@ import { describe, expect, it } from "vitest";
 import { ANATOMY_ASSETS, getApprovedAnatomyAssets, getDefaultAnatomyAsset } from "./assets";
 
 describe("anatomy asset registry", () => {
-  it("exposes only the approved front-facing diagram", () => {
+  it("exposes the front, side, and teeth diagrams", () => {
     const approved = getApprovedAnatomyAssets();
 
-    expect(approved).toHaveLength(1);
-    expect(approved[0]?.view).toBe("front");
-    expect(approved[0]?.src).toBe("/images/face-map.png");
-  });
-
-  it("keeps missing views unapproved and without image sources", () => {
-    const unapproved = ANATOMY_ASSETS.filter((asset) => !asset.approved);
-
-    expect(unapproved.map((asset) => asset.view)).toEqual([
+    expect(approved.map((asset) => asset.view)).toEqual([
+      "front",
       "left-profile",
       "right-profile",
       "teeth",
     ]);
-    expect(unapproved.every((asset) => asset.src === "")).toBe(true);
+    expect(approved[0]?.src).toBe("/images/face-map.png");
+    expect(ANATOMY_ASSETS.every((asset) => asset.approved && asset.src)).toBe(true);
   });
 
   it("uses the approved front view as the default asset", () => {

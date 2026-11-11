@@ -8,6 +8,10 @@ export const FACE_MAP_IMAGE = {
 
 export const FACE_COORDINATE_SCALE = 1000;
 
+export const FACE_VIEWS = ["front", "left-profile", "right-profile", "teeth"] as const;
+
+export type FaceView = (typeof FACE_VIEWS)[number];
+
 export const FACE_LOCATION_KEYS = [
   "forehead",
   "left_forehead",
@@ -30,6 +34,10 @@ export const FACE_LOCATION_KEYS = [
   "chin",
   "left_ear",
   "right_ear",
+  "left_upper_teeth",
+  "right_upper_teeth",
+  "left_lower_teeth",
+  "right_lower_teeth",
 ] as const;
 
 export type FaceLocationKey = (typeof FACE_LOCATION_KEYS)[number];
@@ -40,6 +48,7 @@ export type FaceMapPoint = {
   division: FaceAreaOption;
   location: FaceLocationKey;
   label: string;
+  view?: FaceView;
 };
 
 export type FaceZone = {

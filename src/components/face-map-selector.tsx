@@ -8,9 +8,21 @@ import { FACE_AREA_LABELS } from "@/lib/constants/episode-options";
 import { getApprovedAnatomyAssets, getDefaultAnatomyAsset } from "@/lib/face-map/assets";
 import { FACE_DIVISION_COLORS } from "@/lib/face-map/constants";
 import { toNormalizedCoordinate } from "@/lib/face-map/geometry";
-import { FACE_ZONES } from "@/lib/face-map/regions";
-import { btnSecondaryClass, cardClass, inputClass } from "@/lib/design/ui-classes";
-import { FACE_COORDINATE_SCALE, type FaceMapPoint } from "@/lib/face-map/types";
+import { DENTAL_ZONES, FACE_ZONES, SIDE_FACE_ZONES } from "@/lib/face-map/regions";
+import {
+  btnSecondaryClass,
+  cardClass,
+  choiceChipClass,
+  choiceChipSelectedClass,
+  inputClass,
+} from "@/lib/design/ui-classes";
+import {
+  FACE_COORDINATE_SCALE,
+  type FaceLocationKey,
+  type FaceMapPoint,
+  type FaceView,
+  type FaceZone,
+} from "@/lib/face-map/types";
 import { cn } from "@/lib/utils";
 
 type FaceMapSelectorProps = {
@@ -30,6 +42,51 @@ function zoneCentroid(polygon: Array<[number, number]>) {
   };
 }
 
+const RIGHT_PROFILE_LOCATIONS: Partial<Record<FaceLocationKey, FaceLocationKey>> = {
+  left_forehead: "right_forehead",
+  left_eye: "right_eye",
+  left_nose: "right_nose",
+  left_cheek: "right_cheek",
+  left_ear: "right_ear",
+  left_jaw: "right_jaw",
+};
+
+function zonesForView(view: FaceView): FaceZone[] {
+  if (view === "teeth") {
+    return DENTAL_ZONES;
+  }
+
+  if (view === "left-profile") {
+    return SIDE_FACE_ZONES.map((zone) => ({
+      ...zone,
+      polygon: [...zone.polygon]
+        .reverse()
+        .map(([x, y]) => [FACE_COORDINATE_SCALE - x, y] as [number, number]),
+    }));
+  }
+
+  if (view === "right-profile") {
+    return SIDE_FACE_ZONES.map((zone) => ({
+      ...zone,
+      location: RIGHT_PROFILE_LOCATIONS[zone.location] ?? zone.location,
+      label: zone.label.replace("Left", "Right"),
+    }));
+  }
+
+  return FACE_ZONES;
+}
+
+function generalRegion(location: FaceLocationKey) {
+  return location
+    .replace(/^(left|right)_/, "")
+    .replace("under_eye", "eye")
+    .replace("nose_bridge", "nose");
+}
+
+function isDentalLocation(location: FaceLocationKey) {
+  return location.endsWith("_teeth");
+}
+
 export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,16 +95,28 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
   const selectedAsset =
     approvedAssets.find((asset) => asset.view === selectedView) ?? getDefaultAnatomyAsset();
   const locationOptions = useMemo(() => {
-    const unique = new Map<string, (typeof FACE_ZONES)[number]>();
+    const unique = new Map<
+      string,
+      { location: FaceLocationKey; label: string; division: FaceMapPoint["division"]; x: number; y: number }
+    >();
 
-    for (const zone of FACE_ZONES) {
-      if (!unique.has(zone.location)) {
-        unique.set(zone.location, zone);
+    for (const zone of zonesForView(selectedAsset.view)) {
+      const { x, y } = zoneCentroid(zone.polygon);
+      const result = classifyFaceCoordinate(x, y, selectedAsset.view);
+
+      if (result.ok && !unique.has(result.point.location)) {
+        unique.set(result.point.location, {
+          location: result.point.location,
+          label: result.point.label,
+          division: result.point.division,
+          x,
+          y,
+        });
       }
     }
 
     return [...unique.values()].sort((left, right) => left.label.localeCompare(right.label));
-  }, []);
+  }, [selectedAsset.view]);
 
   function handleImageClick(event: React.MouseEvent<HTMLDivElement>) {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -57,10 +126,10 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
     }
 
     const { x, y } = toNormalizedCoordinate(event.clientX, event.clientY, rect, FACE_COORDINATE_SCALE);
-    const result = classifyFaceCoordinate(x, y);
+    const result = classifyFaceCoordinate(x, y, selectedAsset.view);
 
     if (!result.ok) {
-      setError("Tap on the face area only.");
+      setError("Tap inside one of the shown areas.");
       return;
     }
 
@@ -78,14 +147,13 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
   }
 
   function addLocationFromList(location: string) {
-    const zone = FACE_ZONES.find((entry) => entry.location === location);
+    const option = locationOptions.find((entry) => entry.location === location);
 
-    if (!zone) {
+    if (!option) {
       return;
     }
 
-    const { x, y } = zoneCentroid(zone.polygon);
-    const result = classifyFaceCoordinate(x, y);
+    const result = classifyFaceCoordinate(option.x, option.y, selectedAsset.view);
 
     if (!result.ok) {
       setError("That listed location could not be added. Tap the approved diagram instead.");
@@ -97,25 +165,62 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
   }
 
   const divisions = getUniqueDivisions(points);
+  const visiblePoints = points.flatMap((point, index) => {
+    const pointView = point.view ?? "front";
+
+    if (pointView === selectedAsset.view) {
+      return [{ point, index, projected: false }];
+    }
+
+    if (selectedAsset.view === "teeth" || isDentalLocation(point.location)) {
+      return [];
+    }
+
+    const directMatch = locationOptions.find((option) => option.location === point.location);
+    const generalMatch = locationOptions.find(
+      (option) => generalRegion(option.location) === generalRegion(point.location),
+    );
+    const projection = directMatch ?? generalMatch;
+
+    if (!projection) {
+      return [];
+    }
+
+    return [
+      {
+        point: { ...point, x: projection.x, y: projection.y },
+        index,
+        projected: true,
+      },
+    ];
+  });
 
   return (
     <div className="space-y-3">
       {approvedAssets.length > 1 ? (
-        <fieldset className="flex flex-wrap gap-2">
-          <legend className="sr-only">Approved face diagram</legend>
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-semibold">Choose a view</legend>
+          <div className="flex flex-wrap gap-2">
           {approvedAssets.map((asset) => (
-            <label key={asset.view} className="text-sm">
+            <label
+              key={asset.view}
+              className={cn(
+                choiceChipClass,
+                selectedAsset.view === asset.view && choiceChipSelectedClass,
+              )}
+            >
               <input
                 type="radio"
                 name="anatomy_view"
                 value={asset.view}
                 checked={selectedAsset.view === asset.view}
                 onChange={() => setSelectedView(asset.view)}
-                className="mr-2"
+                className="sr-only"
               />
-              {asset.view}
+              {asset.label}
             </label>
           ))}
+          </div>
         </fieldset>
       ) : null}
 
@@ -134,7 +239,10 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
           alt={selectedAsset.accessibleDescription}
           width={selectedAsset.width}
           height={selectedAsset.height}
-          className="h-auto w-full touch-manipulation select-none"
+          className={cn(
+            "h-auto w-full touch-manipulation select-none",
+            selectedAsset.flipHorizontal && "-scale-x-100",
+          )}
           priority
         />
 
@@ -144,20 +252,24 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
           preserveAspectRatio="none"
           aria-hidden
         >
-          {points.map((point, index) => (
-            <g key={`${point.x}-${point.y}-${index}`}>
+          {visiblePoints.map(({ point, index, projected }) => (
+            <g key={`${selectedAsset.view}-${point.x}-${point.y}-${index}`}>
               <circle
                 cx={point.x}
                 cy={point.y}
                 r="16"
                 fill={FACE_DIVISION_COLORS[point.division]}
-                fillOpacity="0.2"
+                fillOpacity={projected ? "0.12" : "0.2"}
+                stroke={projected ? FACE_DIVISION_COLORS[point.division] : "none"}
+                strokeDasharray={projected ? "5 4" : undefined}
+                strokeWidth={projected ? "2" : undefined}
               />
               <circle
                 cx={point.x}
                 cy={point.y}
                 r="7"
                 fill={FACE_DIVISION_COLORS[point.division]}
+                fillOpacity={projected ? "0.75" : "1"}
                 stroke="white"
                 strokeWidth="2"
               />
@@ -194,9 +306,9 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
           }}
         >
           <option value="">Select a facial region</option>
-          {locationOptions.map((zone) => (
-            <option key={`${zone.location}-${zone.label}`} value={zone.location}>
-              {zone.label} ({FACE_AREA_LABELS[zone.division]})
+          {locationOptions.map((option) => (
+            <option key={`${option.location}-${option.label}`} value={option.location}>
+              {option.label} ({FACE_AREA_LABELS[option.division]})
             </option>
           ))}
         </select>
@@ -262,7 +374,7 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
         </div>
       ) : (
         <p className="text-sm text-[color:var(--muted)]">
-          Tap anywhere on the face to mark where pain occurred. You can add multiple points.
+          Tap the diagram to mark where pain occurred. You can add multiple points.
         </p>
       )}
 

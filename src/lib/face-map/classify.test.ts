@@ -189,4 +189,38 @@ describe("classifyFaceCoordinate", () => {
 
     expect(result).toEqual({ ok: false, reason: "outside_face" });
   });
+
+  it("classifies the visible cheek on the left profile", () => {
+    const result = classifyFaceCoordinate(440, 430, "left-profile");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.point.location).toBe("left_cheek");
+      expect(result.point.division).toBe("v2");
+      expect(result.point.view).toBe("left-profile");
+    }
+  });
+
+  it("mirrors profile locations for the right side", () => {
+    const result = classifyFaceCoordinate(560, 430, "right-profile");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.point.location).toBe("right_cheek");
+      expect(result.point.division).toBe("v2");
+    }
+  });
+
+  it("maps upper and lower teeth to V2 and V3", () => {
+    const upper = classifyFaceCoordinate(400, 380, "teeth");
+    const lower = classifyFaceCoordinate(600, 560, "teeth");
+
+    expect(upper.ok && lower.ok).toBe(true);
+    if (upper.ok && lower.ok) {
+      expect(upper.point.location).toBe("right_upper_teeth");
+      expect(upper.point.division).toBe("v2");
+      expect(lower.point.location).toBe("left_lower_teeth");
+      expect(lower.point.division).toBe("v3");
+    }
+  });
 });

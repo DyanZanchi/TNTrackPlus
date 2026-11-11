@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { FACE_AREA_OPTIONS, PAIN_QUALITY_OPTIONS } from "@/lib/constants/episode-options";
-import { FACE_LOCATION_KEYS } from "@/lib/face-map/types";
+import { FACE_LOCATION_KEYS, FACE_VIEWS } from "@/lib/face-map/types";
 
 const facePointSchema = z.object({
   x: z.coerce.number().min(0).max(1000),
@@ -8,6 +8,7 @@ const facePointSchema = z.object({
   division: z.enum(FACE_AREA_OPTIONS),
   location: z.enum(FACE_LOCATION_KEYS),
   label: z.string().min(1),
+  view: z.enum(FACE_VIEWS).optional(),
 });
 
 function parseFacePoints(value: FormDataEntryValue | null) {
