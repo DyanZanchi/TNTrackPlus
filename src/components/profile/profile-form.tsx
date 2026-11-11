@@ -3,17 +3,23 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
+  BACKGROUND_PAIN_LABELS,
+  BACKGROUND_PAIN_OPTIONS,
   CLINICIAN_EVALUATION_LABELS,
   CLINICIAN_EVALUATION_OPTIONS,
   DIAGNOSIS_STATUS_LABELS,
   DIAGNOSIS_STATUS_OPTIONS,
   GENDER_LABELS,
   GENDER_OPTIONS,
-  PATIENT_PAIN_PATTERN_LABELS,
-  PATIENT_PAIN_PATTERN_OPTIONS,
+  PAIN_OCCURRENCE_LABELS,
+  PAIN_OCCURRENCE_OPTIONS,
   RELEVANT_HISTORY_LABELS,
   RELEVANT_HISTORY_OPTIONS,
   isExclusiveHistoryOption,
+  occurrenceFromPainPattern,
+  painPatternFromOccurrence,
+  type BackgroundPainOption,
+  type PainOccurrenceOption,
 } from "@/lib/constants/profile-options";
 import { YES_NO_UNSURE_LABELS, YES_NO_UNSURE_OPTIONS } from "@/lib/constants/episode-options";
 import {
@@ -46,7 +52,6 @@ import type { ProfileActionState } from "@/lib/profile/actions";
 import type {
   ClinicianEvaluationOption,
   DiagnosisStatusOption,
-  PatientPainPattern,
   PatientProfile,
   RelevantHistoryOption,
 } from "@/lib/types/profile";
@@ -55,11 +60,17 @@ import {
   alertErrorClass,
   alertInfoClass,
   btnSecondaryClass,
+  choiceChipClass,
+  choiceChipSelectedClass,
+  followUpIndentClass,
   hintClass,
   inputClass,
   labelClass,
+  nestedPanelClass,
+  selectClass,
   selectionTileClass,
   selectionTileSelectedClass,
+  subsectionPromptClass,
   surveyPromptClass,
 } from "@/lib/design/ui-classes";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -96,9 +107,14 @@ export function ProfileForm({
 }: ProfileFormProps) {
   const [state, formAction] = useActionState<ProfileActionState, FormData>(action, INITIAL_STATE);
   const [gender, setGender] = useState(profile.gender ?? "");
-  const [painPattern, setPainPattern] = useState<PatientPainPattern | "">(
-    profile.current_pain_pattern ?? "",
+  const initialOccurrence = occurrenceFromPainPattern(profile.current_pain_pattern);
+  const [painOccurrence, setPainOccurrence] = useState<PainOccurrenceOption | "">(
+    initialOccurrence.occurrence,
   );
+  const [backgroundPain, setBackgroundPain] = useState<BackgroundPainOption | "">(
+    initialOccurrence.background,
+  );
+  const resolvedPainPattern = painPatternFromOccurrence(painOccurrence, backgroundPain);
   const [clinicianEvaluation, setClinicianEvaluation] = useState<ClinicianEvaluationOption | "">(
     profile.clinician_evaluation_status ?? "",
   );
@@ -182,12 +198,12 @@ export function ProfileForm({
     profile.other_therapies.find((entry) => entry.therapy_type === "other")?.other_label ?? "";
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form action={formAction} className="space-y-7">
       {redirectTo ? <input type="hidden" name="redirect_to" value={redirectTo} /> : null}
       <FormInstructions />
       {state.error ? <p className={alertErrorClass}>{state.error}</p> : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2">
         <label className="block space-y-2">
           <span className={labelClass}>Age</span>
           <input
@@ -208,7 +224,7 @@ export function ProfileForm({
             required
             value={gender}
             onChange={(event) => setGender(event.target.value)}
-            className={inputClass}
+            className={selectClass}
           >
             <option value="" disabled>
               Select one
@@ -222,8 +238,8 @@ export function ProfileForm({
         </label>
 
         {gender === "other" ? (
-          <label className="block space-y-2 md:col-span-2">
-            <span className={labelClass}>Describe gender</span>
+          <label className={cn(followUpIndentClass, "block md:col-span-2")}>
+            <span className={subsectionPromptClass}>Describe gender</span>
             <input
               type="text"
               name="gender_other"
@@ -238,26 +254,36 @@ export function ProfileForm({
         )}
 
         <fieldset className="space-y-3 md:col-span-2">
-          <legend className={surveyPromptClass}>Which best describes your facial pain?</legend>
+          <legend className={surveyPromptClass}>
+            How does your facial pain usually occur?
+          </legend>
+          {resolvedPainPattern ? (
+            <input type="hidden" name="pain_pattern" value={resolvedPainPattern} />
+          ) : null}
           <div className="grid gap-2">
-            {PATIENT_PAIN_PATTERN_OPTIONS.map((option) => (
+            {PAIN_OCCURRENCE_OPTIONS.map((option) => (
               <label
                 key={option}
                 className={cn(
                   selectionTileClass,
-                  painPattern === option && selectionTileSelectedClass,
+                  painOccurrence === option && selectionTileSelectedClass,
                 )}
               >
                 <input
                   type="radio"
-                  name="pain_pattern"
+                  name="pain_occurrence"
                   value={option}
                   required={variant === "onboarding"}
-                  checked={painPattern === option}
-                  onChange={() => setPainPattern(option)}
+                  checked={painOccurrence === option}
+                  onChange={() => {
+                    setPainOccurrence(option);
+                    if (option !== "episodic") {
+                      setBackgroundPain("");
+                    }
+                  }}
                   className="sr-only"
                 />
-                {PATIENT_PAIN_PATTERN_LABELS[option]}
+                {PAIN_OCCURRENCE_LABELS[option]}
               </label>
             ))}
           </div>
@@ -266,12 +292,46 @@ export function ProfileForm({
               <strong>Episode:</strong> a period when pain starts or intensifies and then settles.
             </p>
             <p>
-              <strong>Background pain:</strong> pain that persists between episodes and may change
-              in intensity.
+              <strong>Continuous pain:</strong> pain that is present most or all of the time.
             </p>
             <p>This describes your experience; it is not a diagnosis.</p>
           </div>
         </fieldset>
+
+        {painOccurrence === "episodic" ? (
+          <fieldset className={cn(followUpIndentClass, "md:col-span-2")}>
+            <legend className={subsectionPromptClass}>
+              Between episodes, do you have background pain?
+            </legend>
+            <div className="grid gap-2">
+              {BACKGROUND_PAIN_OPTIONS.map((option) => (
+                <label
+                  key={option}
+                  className={cn(
+                    selectionTileClass,
+                    backgroundPain === option && selectionTileSelectedClass,
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="background_pain_between_episodes"
+                    value={option}
+                    required={variant === "onboarding"}
+                    checked={backgroundPain === option}
+                    onChange={() => setBackgroundPain(option)}
+                    className="sr-only"
+                  />
+                  {BACKGROUND_PAIN_LABELS[option]}
+                </label>
+              ))}
+            </div>
+            <p className={hintClass}>
+              <strong>No background pain</strong> means pain-free periods between episodes.{" "}
+              <strong>Background pain</strong> means some pain continues between episodes and may
+              change in intensity.
+            </p>
+          </fieldset>
+        ) : null}
 
         <fieldset className="space-y-3 md:col-span-2">
           <legend className={surveyPromptClass}>
@@ -302,8 +362,8 @@ export function ProfileForm({
         </fieldset>
 
         {clinicianEvaluation === "yes" ? (
-          <fieldset className="space-y-3 md:col-span-2">
-            <legend className={surveyPromptClass}>
+          <fieldset className={cn(followUpIndentClass, "md:col-span-2")}>
+            <legend className={subsectionPromptClass}>
               Have you received a facial pain diagnosis?
             </legend>
             <div className="grid gap-2 sm:grid-cols-3">
@@ -328,8 +388,8 @@ export function ProfileForm({
               ))}
             </div>
             {receivedDiagnosis === "yes" ? (
-              <fieldset className="space-y-3">
-                <legend className={surveyPromptClass}>
+              <fieldset className={followUpIndentClass}>
+                <legend className={subsectionPromptClass}>
                   Do you also have facial pain that has not been diagnosed?
                 </legend>
                 <div className="grid gap-2 sm:grid-cols-3">
@@ -384,12 +444,12 @@ export function ProfileForm({
           {showShockFollowUps ? (
             <>
               {shockStatus === "had_past" ? (
-                <fieldset className="space-y-2 rounded-3xl border border-[color:var(--border)] p-4">
-                  <legend className="text-sm font-medium">
+                <div className={nestedPanelClass}>
+                  <p className={subsectionPromptClass}>
                     When you had that shock-like pain, did you have background pain between the
                     shocks?
-                  </legend>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     {(
                       [
                         ["had_past", "Yes"],
@@ -399,9 +459,9 @@ export function ProfileForm({
                       <label
                         key={status}
                         className={cn(
-                          selectionTileClass,
+                          choiceChipClass,
                           describedPatterns.background_between_shocks === status &&
-                            selectionTileSelectedClass,
+                            choiceChipSelectedClass,
                         )}
                       >
                         <input
@@ -421,15 +481,16 @@ export function ProfileForm({
                       </label>
                     ))}
                   </div>
-                </fieldset>
+                </div>
               ) : (
                 <DescribedPatternChoices
                   patternKey="background_between_shocks"
                   prompt={patternByKey.background_between_shocks.prompt}
                   value={describedPatterns.background_between_shocks}
+                  nested
                   labels={{
-                    have_now: "Yes, I have it now",
-                    had_past: "Yes, I had it in the past, but not now",
+                    have_now: "Have it now",
+                    had_past: "Had it in the past, but not now",
                     never: "No",
                   }}
                   onChange={(status) =>
@@ -441,26 +502,29 @@ export function ProfileForm({
                 />
               )}
 
-              <fieldset className="space-y-3 rounded-3xl border border-[color:var(--border)] p-4">
-                <legend className="text-sm font-medium">
+              <div className={nestedPanelClass}>
+                <p className={subsectionPromptClass}>
                   Did a doctor or medical professional tell you your shock-like pain is or was caused
-                  by any of the following? Answer yes or no for each.
-                </legend>
-                {SHOCK_CAUSE_FOLLOWUPS.map((item) => (
-                  <YesNoFollowUp
-                    key={item.key}
-                    name={`classification_${item.key}`}
-                    prompt={item.prompt}
-                    value={classificationFollowups[item.key]}
-                    onChange={(answer) =>
-                      setClassificationFollowups((current) => ({
-                        ...current,
-                        [item.key]: answer,
-                      }))
-                    }
-                  />
-                ))}
-              </fieldset>
+                  by any of the following?
+                </p>
+                <p className={hintClass}>Answer yes or no for each.</p>
+                <div className="space-y-3">
+                  {SHOCK_CAUSE_FOLLOWUPS.map((item) => (
+                    <YesNoFollowUp
+                      key={item.key}
+                      name={`classification_${item.key}`}
+                      prompt={item.prompt}
+                      value={classificationFollowups[item.key]}
+                      onChange={(answer) =>
+                        setClassificationFollowups((current) => ({
+                          ...current,
+                          [item.key]: answer,
+                        }))
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
             </>
           ) : null}
 
@@ -476,28 +540,31 @@ export function ProfileForm({
             }
           />
 
-          <fieldset className="space-y-3 rounded-3xl border border-[color:var(--border)] p-4">
-            <legend className="text-sm font-medium">
+          <div className={nestedPanelClass}>
+            <p className={subsectionPromptClass}>
               Have you had facial pain that includes numbness, pricking, tingling, creeping, or pins
-              and needles after any of the following? Answer yes or no for each.
-            </legend>
-            {NEUROPATHIC_CAUSE_FOLLOWUPS.map((item) => (
-              <YesNoFollowUp
-                key={item.key}
-                name={`classification_${item.key}`}
-                prompt={item.prompt}
-                value={classificationFollowups[item.key]}
-                onChange={(answer) =>
-                  setClassificationFollowups((current) => ({
-                    ...current,
-                    [item.key]: answer,
-                  }))
-                }
-              />
-            ))}
-          </fieldset>
+              and needles after any of the following?
+            </p>
+            <p className={hintClass}>Answer yes or no for each.</p>
+            <div className="space-y-3">
+              {NEUROPATHIC_CAUSE_FOLLOWUPS.map((item) => (
+                <YesNoFollowUp
+                  key={item.key}
+                  name={`classification_${item.key}`}
+                  prompt={item.prompt}
+                  value={classificationFollowups[item.key]}
+                  onChange={(answer) =>
+                    setClassificationFollowups((current) => ({
+                      ...current,
+                      [item.key]: answer,
+                    }))
+                  }
+                />
+              ))}
+            </div>
+          </div>
 
-          <fieldset className="space-y-3 rounded-3xl border border-[color:var(--border)] p-4">
+          <div className={nestedPanelClass}>
             <YesNoFollowUp
               name={`classification_${OTHER_NEUROPATHIC_FOLLOWUP.key}`}
               prompt={OTHER_NEUROPATHIC_FOLLOWUP.prompt}
@@ -510,7 +577,7 @@ export function ProfileForm({
               }
             />
             {classificationFollowups[OTHER_NEUROPATHIC_FOLLOWUP.key] === "yes" ? (
-              <label className="block space-y-2 text-sm font-semibold">
+              <label className={cn(followUpIndentClass, "block text-sm font-medium")}>
                 What is the cause of your pain?
                 <textarea
                   name={`classification_${OTHER_NEUROPATHIC_FOLLOWUP.key}_detail`}
@@ -526,10 +593,10 @@ export function ProfileForm({
                 />
               </label>
             ) : null}
-          </fieldset>
+          </div>
 
           {showIdiopathicFollowUp ? (
-            <fieldset className="space-y-3 rounded-3xl border border-[color:var(--border)] p-4">
+            <div className={nestedPanelClass}>
               <YesNoFollowUp
                 name={`classification_${IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key}`}
                 prompt={IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.prompt}
@@ -542,7 +609,7 @@ export function ProfileForm({
                 }
               />
               {classificationFollowups[IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key] === "yes" ? (
-                <label className="block space-y-2 text-sm font-semibold">
+                <label className={cn(followUpIndentClass, "block text-sm font-medium")}>
                   What is the cause of your pain?
                   <textarea
                     name={`classification_${IDIOPATHIC_LEARNED_CAUSE_FOLLOWUP.key}_detail`}
@@ -558,7 +625,7 @@ export function ProfileForm({
                   />
                 </label>
               ) : null}
-            </fieldset>
+            </div>
           ) : null}
 
           {(
@@ -601,8 +668,8 @@ export function ProfileForm({
             const current = headachePatterns[pattern.key];
             const saved = profile.headache_patterns.find((entry) => entry.pattern_key === pattern.key);
             return (
-              <fieldset key={pattern.key} className="space-y-3 rounded-3xl border border-[color:var(--border)] p-4">
-                <legend className="text-sm font-medium">{pattern.prompt}</legend>
+              <fieldset key={pattern.key} className="space-y-3 border-b border-[color:var(--border)] pb-5 last:border-b-0 last:pb-0">
+                <legend className={subsectionPromptClass}>{pattern.prompt}</legend>
                 <div className="grid gap-2">
                   {(
                     Object.entries(HEADACHE_PATTERN_STATUS_LABELS) as Array<
@@ -634,15 +701,15 @@ export function ProfileForm({
                   ))}
                 </div>
                 {current?.status && headacheFollowUpApplies(current.status) ? (
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm font-semibold">{pattern.followUpPrompt}</legend>
-                    <div className="grid gap-2 sm:grid-cols-2">
+                  <div className={nestedPanelClass}>
+                    <p className={subsectionPromptClass}>{pattern.followUpPrompt}</p>
+                    <div className="flex flex-wrap gap-2">
                       {(["yes", "no"] as const).map((answer) => (
                         <label
                           key={answer}
                           className={cn(
-                            selectionTileClass,
-                            current.longCourse === answer && selectionTileSelectedClass,
+                            choiceChipClass,
+                            current.longCourse === answer && choiceChipSelectedClass,
                           )}
                         >
                           <input
@@ -662,18 +729,18 @@ export function ProfileForm({
                         </label>
                       ))}
                     </div>
-                  </fieldset>
+                  </div>
                 ) : null}
                 {pattern.autonomicPrompt && current?.longCourse === "yes" ? (
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm font-semibold">{pattern.autonomicPrompt}</legend>
-                    <div className="grid gap-2 sm:grid-cols-2">
+                  <div className={nestedPanelClass}>
+                    <p className={subsectionPromptClass}>{pattern.autonomicPrompt}</p>
+                    <div className="flex flex-wrap gap-2">
                       {(["yes", "no"] as const).map((answer) => (
                         <label
                           key={answer}
                           className={cn(
-                            selectionTileClass,
-                            saved?.autonomic_symptoms === answer && selectionTileSelectedClass,
+                            choiceChipClass,
+                            saved?.autonomic_symptoms === answer && choiceChipSelectedClass,
                           )}
                         >
                           <input
@@ -687,7 +754,7 @@ export function ProfileForm({
                         </label>
                       ))}
                     </div>
-                  </fieldset>
+                  </div>
                 ) : null}
               </fieldset>
             );
@@ -761,7 +828,7 @@ export function ProfileForm({
               return (
                 <div
                   key={option}
-                  className="space-y-3 rounded-3xl border border-[color:var(--border)] bg-[color:var(--accent)]/60 p-4"
+                  className={nestedPanelClass}
                 >
                   <p className="text-sm font-semibold">{RELEVANT_HISTORY_LABELS[option]}</p>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -873,22 +940,30 @@ function DescribedPatternChoices({
   prompt,
   value,
   onChange,
+  nested = false,
   labels = DESCRIBED_PATTERN_STATUS_LABELS,
 }: {
   patternKey: string;
   prompt: string;
   value?: DescribedPatternStatus;
   onChange: (status: DescribedPatternStatus) => void;
+  nested?: boolean;
   labels?: Record<DescribedPatternStatus, string>;
 }) {
   return (
-    <fieldset className="space-y-2 rounded-3xl border border-[color:var(--border)] p-4">
-      <legend className="text-sm font-medium">{prompt}</legend>
-      <div className="grid gap-2 sm:grid-cols-3">
+    <fieldset
+      className={
+        nested
+          ? nestedPanelClass
+          : "space-y-2.5 border-b border-[color:var(--border)] pb-5 last:border-b-0 last:pb-0"
+      }
+    >
+      <legend className={subsectionPromptClass}>{prompt}</legend>
+      <div className="flex flex-wrap gap-2">
         {DESCRIBED_PATTERN_STATUS_OPTIONS.map((status) => (
           <label
             key={status}
-            className={cn(selectionTileClass, value === status && selectionTileSelectedClass)}
+            className={cn(choiceChipClass, value === status && choiceChipSelectedClass)}
           >
             <input
               type="radio"
@@ -918,13 +993,13 @@ function YesNoFollowUp({
   onChange: (answer: ClassificationYesNo) => void;
 }) {
   return (
-    <fieldset className="space-y-2">
-      <legend className="text-sm font-semibold">{prompt}</legend>
-      <div className="grid gap-2 sm:grid-cols-2">
+    <div className="space-y-2">
+      <p className="text-sm text-[color:var(--foreground)]">{prompt}</p>
+      <div className="flex flex-wrap gap-2">
         {(["yes", "no"] as const).map((answer) => (
           <label
             key={answer}
-            className={cn(selectionTileClass, value === answer && selectionTileSelectedClass)}
+            className={cn(choiceChipClass, value === answer && choiceChipSelectedClass)}
           >
             <input
               type="radio"
@@ -938,6 +1013,6 @@ function YesNoFollowUp({
           </label>
         ))}
       </div>
-    </fieldset>
+    </div>
   );
 }

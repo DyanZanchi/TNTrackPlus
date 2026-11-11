@@ -1,4 +1,4 @@
-import { hintClass, inputClass, surveyPromptClass } from "@/lib/design/ui-classes";
+import { hintClass, selectClass, surveyPromptClass } from "@/lib/design/ui-classes";
 
 type FunctionalImpactFieldProps = {
   subject: "episode" | "background pain";
@@ -10,7 +10,7 @@ export function FunctionalImpactField({ subject }: FunctionalImpactFieldProps) {
       <span className={surveyPromptClass}>
         How much did this {subject} affect your usual daily activities?
       </span>
-      <select name="functional_impact" defaultValue="" className={inputClass}>
+      <select name="functional_impact" defaultValue="" className={selectClass}>
         <option value="">Prefer not to answer</option>
         {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
           <option key={value} value={value}>

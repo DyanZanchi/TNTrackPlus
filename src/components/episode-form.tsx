@@ -50,9 +50,11 @@ import {
   alertErrorClass,
   alertInfoClass,
   btnSecondaryClass,
+  followUpIndentClass,
   hintClass,
   inputClass,
   inputMonoClass,
+  subsectionPromptClass,
   surveyPromptClass,
   selectionTileClass,
   selectionTileSelectedClass,
@@ -119,6 +121,7 @@ export function EpisodeForm({
   const [state, formAction] = useActionState<EpisodeActionState, FormData>(action, INITIAL_STATE);
   const [severity, setSeverity] = useState(5);
   const [painPattern, setPainPattern] = useState<PainPatternOption | "">("");
+  const [hadBackgroundBefore, setHadBackgroundBefore] = useState<"yes" | "no" | "">("");
   const [durationStatus, setDurationStatus] = useState<DurationStatusOption>("known");
   const [durationUnit, setDurationUnit] = useState<DurationUnitOption | "">("");
   const [durationAmount, setDurationAmount] = useState("");
@@ -174,23 +177,6 @@ export function EpisodeForm({
         </label>
 
         <SeverityCard severity={severity} onChange={setSeverity} />
-        {profile.current_pain_pattern === "continuous_with_episodes" ? (
-          <label className="block max-w-xs space-y-2">
-            <span className={surveyPromptClass}>
-              Just before this episode started, how intense was your background pain?
-            </span>
-            <input
-              type="number"
-              name="background_severity_before"
-              min={1}
-              max={10}
-              step={1}
-              inputMode="numeric"
-              className={inputClass}
-            />
-            <p className={hintClass}>Optional. Enter a number from 1 to 10, or skip if you are not sure.</p>
-          </label>
-        ) : null}
         <FunctionalImpactField subject="episode" />
       </section>
 
@@ -246,8 +232,8 @@ export function EpisodeForm({
                     {PAIN_QUALITY_LABELS[option]}
                   </label>
                   {showThrobbingFollowUp ? (
-                    <fieldset className="ml-4 space-y-3 border-l-2 border-[color:var(--primary)]/25 py-1 pl-4">
-                      <legend className={surveyPromptClass}>
+                    <fieldset className={followUpIndentClass}>
+                      <legend className={subsectionPromptClass}>
                         Was the throbbing associated with any of the following?
                       </legend>
                       <div className="grid gap-2 sm:grid-cols-2">
@@ -288,9 +274,6 @@ export function EpisodeForm({
                           </label>
                         ))}
                       </div>
-                      <p className={hintClass}>
-                        Optional. Select all that apply, choose No, or leave this unanswered.
-                      </p>
                     </fieldset>
                   ) : null}
                 </div>
@@ -302,8 +285,8 @@ export function EpisodeForm({
             <p className="text-sm text-[color:var(--danger)]">{state.fieldErrors.pain_qualities}</p>
           ) : null}
           {selectedPainQualities.includes("other") ? (
-            <label className="block space-y-2">
-              <span className={surveyPromptClass}>Describe the pain in your own words</span>
+            <label className={cn(followUpIndentClass, "block")}>
+              <span className={subsectionPromptClass}>Describe the pain in your own words</span>
               <input
                 type="text"
                 name="pain_quality_other"
@@ -345,20 +328,20 @@ export function EpisodeForm({
           </div>
         </fieldset>
         {hadNumbness === "yes" ? (
-          <div className="ml-4 space-y-4 border-l-2 border-[color:var(--primary)]/25 py-1 pl-4">
+          <div className={cn(followUpIndentClass, "space-y-4")}>
             <label className="block space-y-2">
-              <span className={surveyPromptClass}>Where did you feel numbness?</span>
+              <span className={subsectionPromptClass}>Where did you feel numbness?</span>
               <input
                 type="text"
                 name="numbness_location"
                 maxLength={200}
                 className={inputClass}
-                placeholder="Optional. For example, right cheek or chin."
+                placeholder="For example, right cheek or chin."
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block space-y-2">
-                <span className={surveyPromptClass}>When did the numbness start?</span>
+                <span className={subsectionPromptClass}>When did the numbness start?</span>
                 <input
                   type="date"
                   name="numbness_onset_date"
@@ -379,7 +362,7 @@ export function EpisodeForm({
               </label>
             </div>
             <fieldset className="space-y-3">
-              <legend className={surveyPromptClass}>
+              <legend className={subsectionPromptClass}>
                 Did the numbness start after a procedure?
               </legend>
               <div className="grid gap-2 sm:grid-cols-3">
@@ -404,20 +387,20 @@ export function EpisodeForm({
                 ))}
               </div>
               {numbnessAfterProcedure === "yes" ? (
-                <label className="block space-y-2">
-                  <span className={surveyPromptClass}>Which procedure, if you know?</span>
+                <label className={cn(followUpIndentClass, "block")}>
+                  <span className={subsectionPromptClass}>Which procedure, if you know?</span>
                   <input
                     type="text"
                     name="numbness_procedure_note"
                     maxLength={200}
                     className={inputClass}
-                    placeholder="Optional"
+                    placeholder="For example, dental procedure"
                   />
                 </label>
               ) : null}
             </fieldset>
             <fieldset className="space-y-3">
-              <legend className={surveyPromptClass}>Is the numbness current or in the past?</legend>
+              <legend className={subsectionPromptClass}>Is the numbness current or in the past?</legend>
               <div className="grid gap-2 sm:grid-cols-3">
                 {NUMBNESS_TIMING_OPTIONS.map((option) => (
                   <label
@@ -440,14 +423,15 @@ export function EpisodeForm({
                 ))}
               </div>
             </fieldset>
-            <p className={hintClass}>These follow-up questions are optional.</p>
           </div>
         ) : null}
       </section>
 
       <section className="space-y-4">
         <fieldset className="space-y-3">
-          <legend className={surveyPromptClass}>Pain pattern</legend>
+          <legend className={surveyPromptClass}>
+            Did the pain occur continuously or in short bursts?
+          </legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {PAIN_PATTERN_OPTIONS.map((option) => (
               <label
@@ -470,13 +454,73 @@ export function EpisodeForm({
               </label>
             ))}
           </div>
-          <p className={hintClass}>Choose whether the pain felt steady or came in short bursts.</p>
         </fieldset>
+
+        {painPattern ? (
+          <fieldset className="space-y-3">
+            <legend className={surveyPromptClass}>
+              Just before this episode started, did you have background pain?
+            </legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label
+                className={cn(
+                  selectionTileClass,
+                  hadBackgroundBefore === "no" && selectionTileSelectedClass,
+                )}
+              >
+                <input
+                  type="radio"
+                  name="had_background_before"
+                  value="no"
+                  checked={hadBackgroundBefore === "no"}
+                  onChange={() => setHadBackgroundBefore("no")}
+                  className="sr-only"
+                />
+                No background pain
+              </label>
+              <label
+                className={cn(
+                  selectionTileClass,
+                  hadBackgroundBefore === "yes" && selectionTileSelectedClass,
+                )}
+              >
+                <input
+                  type="radio"
+                  name="had_background_before"
+                  value="yes"
+                  checked={hadBackgroundBefore === "yes"}
+                  onChange={() => setHadBackgroundBefore("yes")}
+                  className="sr-only"
+                />
+                Yes, I had background pain
+              </label>
+            </div>
+            {hadBackgroundBefore === "yes" ? (
+              <label className={cn(followUpIndentClass, "block max-w-xs")}>
+                <span className={subsectionPromptClass}>
+                  How intense was your background pain?
+                </span>
+                <input
+                  type="number"
+                  name="background_severity_before"
+                  min={1}
+                  max={10}
+                  step={1}
+                  inputMode="numeric"
+                  className={inputClass}
+                  placeholder="1–10"
+                />
+              </label>
+            ) : (
+              <input type="hidden" name="background_severity_before" value="" />
+            )}
+          </fieldset>
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           {painPattern === "episodic_pulsing" ? (
-            <label className="block space-y-2 sm:col-span-2">
-              <span className={surveyPromptClass}>Length of each pulse</span>
+            <label className={cn(followUpIndentClass, "block sm:col-span-2")}>
+              <span className={subsectionPromptClass}>Length of each pulse</span>
               <input
                 type="text"
                 name="pulse_duration_hms"
@@ -525,7 +569,8 @@ export function EpisodeForm({
               ))}
             </div>
             {durationStatus === "known" ? (
-              <>
+              <div className={followUpIndentClass}>
+                <p className={subsectionPromptClass}>How long was it?</p>
                 <div className="grid gap-2 sm:grid-cols-3">
                   {DURATION_UNIT_OPTIONS.map((option) => (
                     <label
@@ -552,9 +597,9 @@ export function EpisodeForm({
                   ))}
                 </div>
                 {durationUnit ? (
-                  <div className="max-w-xs space-y-2">
+                  <div className={cn(followUpIndentClass, "max-w-xs")}>
                     <label className="block space-y-2">
-                      <span className={surveyPromptClass}>How many {durationUnit}?</span>
+                      <span className={subsectionPromptClass}>How many {durationUnit}?</span>
                       <input
                         type="number"
                         name="duration_amount"
@@ -568,20 +613,10 @@ export function EpisodeForm({
                         className={inputClass}
                       />
                     </label>
-                    <p className={hintClass}>
-                      Enter a whole number from 1 to {DURATION_UNIT_MAX[durationUnit]}.
-                    </p>
                   </div>
-                ) : (
-                  <p className={hintClass}>Choose minutes, hours, or days, then enter how many.</p>
-                )}
-              </>
-            ) : (
-              <p className={hintClass}>
-                Unknown or ongoing episodes are saved without a duration. Missing length is not treated
-                as zero.
-              </p>
-            )}
+                ) : null}
+              </div>
+            ) : null}
           </fieldset>
 
           <fieldset className="space-y-3 sm:col-span-2">
@@ -608,18 +643,17 @@ export function EpisodeForm({
               ))}
             </div>
             {painChangedDuring === "yes" ? (
-              <label className="block space-y-2">
-                <span className={surveyPromptClass}>How did it change?</span>
+              <label className={cn(followUpIndentClass, "block")}>
+                <span className={subsectionPromptClass}>How did it change?</span>
                 <textarea
                   name="pain_change_summary"
                   rows={3}
                   maxLength={300}
                   className={cn(inputClass, "resize-y")}
-                  placeholder="Optional. For example, it started sharp and then settled."
+                  placeholder="For example, it started sharp and then settled."
                 />
               </label>
             ) : null}
-            <p className={hintClass}>Optional. Skip if you would rather keep this entry short.</p>
           </fieldset>
         </div>
       </section>
@@ -628,14 +662,13 @@ export function EpisodeForm({
         <InlineTaxonomyPicker
           name="trigger_ids"
           title="What prompted the episode?"
-          titleClass={surveyPromptClass}
+          titleClass={cn(surveyPromptClass, "text-xl md:text-2xl")}
           singularLabel="trigger"
           options={triggerOptions}
           selectedIds={selectedTriggerIds}
           onSelectionChange={setSelectedTriggerIds}
           addAction={addTriggerAction}
           hideAction={hideTriggerAction}
-          helperText="Choose Spontaneous / no clear trigger or Not sure by itself, or select the triggers that applied. Use Other only for an additional trigger that is not listed."
           exclusiveOptionIds={[...EXCLUSIVE_TRIGGER_OPTION_IDS]}
           demoMode={demoMode}
           grid
@@ -804,7 +837,7 @@ export function EpisodeForm({
             rows={4}
             maxLength={500}
             className={cn(inputClass, "resize-y")}
-            placeholder="Optional details about the episode, context, or anything unusual you noticed."
+            placeholder="Anything else about this episode"
           />
         </label>
       </section>

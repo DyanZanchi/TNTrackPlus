@@ -18,12 +18,88 @@ export const PATIENT_PAIN_PATTERN_LABELS: Record<
   string
 > = {
   episodes_with_pain_free_periods:
-    "I have episodes of pain with pain-free periods between them.",
+    "Episodes of pain with no background pain between them.",
   continuous_background:
-    "I have continuous/background pain that is present most or all of the time.",
-  continuous_with_episodes: "I have continuous/background pain with episodes of worse pain.",
-  varies_unsure: "My pain pattern varies / I'm not sure.",
+    "Continuous pain most or all of the time.",
+  continuous_with_episodes: "Continuous pain with episodes of worse pain.",
+  varies_unsure: "Varies / not sure.",
 };
+
+/** First step of the pain-pattern question: continuous vs episodic. */
+export const PAIN_OCCURRENCE_OPTIONS = [
+  "continuous",
+  "episodic",
+  "both",
+  "varies",
+] as const;
+
+export type PainOccurrenceOption = (typeof PAIN_OCCURRENCE_OPTIONS)[number];
+
+export const PAIN_OCCURRENCE_LABELS: Record<PainOccurrenceOption, string> = {
+  continuous: "Continuous pain most or all of the time",
+  episodic: "Episodes of pain that come and go",
+  both: "Both continuous pain and episodes",
+  varies: "Varies / not sure",
+};
+
+/** Second step: background pain between episodes (only after episodic). */
+export const BACKGROUND_PAIN_OPTIONS = [
+  "no_background",
+  "has_background",
+  "not_sure",
+] as const;
+
+export type BackgroundPainOption = (typeof BACKGROUND_PAIN_OPTIONS)[number];
+
+export const BACKGROUND_PAIN_LABELS: Record<BackgroundPainOption, string> = {
+  no_background: "No background pain — pain-free periods between episodes",
+  has_background: "Yes — background pain between episodes",
+  not_sure: "Not sure",
+};
+
+export function painPatternFromOccurrence(
+  occurrence: PainOccurrenceOption | "",
+  background: BackgroundPainOption | "",
+): (typeof PATIENT_PAIN_PATTERN_OPTIONS)[number] | null {
+  if (occurrence === "continuous") {
+    return "continuous_background";
+  }
+  if (occurrence === "both") {
+    return "continuous_with_episodes";
+  }
+  if (occurrence === "varies") {
+    return "varies_unsure";
+  }
+  if (occurrence === "episodic") {
+    if (background === "no_background") {
+      return "episodes_with_pain_free_periods";
+    }
+    if (background === "has_background") {
+      return "continuous_with_episodes";
+    }
+    if (background === "not_sure") {
+      return "varies_unsure";
+    }
+  }
+  return null;
+}
+
+export function occurrenceFromPainPattern(
+  pattern: (typeof PATIENT_PAIN_PATTERN_OPTIONS)[number] | null | "",
+): { occurrence: PainOccurrenceOption | ""; background: BackgroundPainOption | "" } {
+  switch (pattern) {
+    case "continuous_background":
+      return { occurrence: "continuous", background: "" };
+    case "episodes_with_pain_free_periods":
+      return { occurrence: "episodic", background: "no_background" };
+    case "continuous_with_episodes":
+      return { occurrence: "both", background: "" };
+    case "varies_unsure":
+      return { occurrence: "varies", background: "" };
+    default:
+      return { occurrence: "", background: "" };
+  }
+}
 
 export const PRIOR_TREATMENT_OPTIONS = [
   "mvd",

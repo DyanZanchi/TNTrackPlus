@@ -8,9 +8,9 @@ export const DESCRIBED_PATTERN_STATUS_LABELS: Record<
   (typeof DESCRIBED_PATTERN_STATUS_OPTIONS)[number],
   string
 > = {
-  have_now: "I have this now",
-  had_past: "I had this in the past, but not now",
-  never: "I have never had this",
+  have_now: "Have this now",
+  had_past: "Had this in the past, but not now",
+  never: "Never had this",
 };
 
 export type DescribedPatternStatus = (typeof DESCRIBED_PATTERN_STATUS_OPTIONS)[number];

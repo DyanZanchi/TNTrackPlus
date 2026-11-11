@@ -8,10 +8,10 @@ export const HEADACHE_PATTERN_STATUSES = [
 export type HeadachePatternStatus = (typeof HEADACHE_PATTERN_STATUSES)[number];
 
 export const HEADACHE_PATTERN_STATUS_LABELS: Record<HeadachePatternStatus, string> = {
-  now_under_one_year: "I have this now, and have had it for less than one year",
-  now_and_past: "I have this now, and have had it before",
-  past_only: "I had this in the past, but not now",
-  never: "I have never had this",
+  now_under_one_year: "Have this now, for less than one year",
+  now_and_past: "Have this now, and have had it before",
+  past_only: "Had this in the past, but not now",
+  never: "Never had this",
 };
 
 export type HeadachePattern = {

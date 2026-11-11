@@ -266,11 +266,7 @@ export function FaceMapSelector({ points, onChange }: FaceMapSelectorProps) {
         </p>
       )}
 
-      <p className="text-xs text-[color:var(--muted)]">
-        {selectedAsset.accessibleDescription} Each tap or list selection saves coordinates and maps
-        to a trigeminal division (V1, V2, or V3). Additional approved side and dental diagrams will
-        appear here when they are available. Unapproved views are omitted.
-      </p>
+      <p className="text-xs text-[color:var(--muted)]">{selectedAsset.accessibleDescription}</p>
     </div>
   );
 }

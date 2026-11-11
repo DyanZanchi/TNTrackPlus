@@ -57,8 +57,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           ← Back to dashboard
         </Link>
         <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">Patient information</h1>
-        <p className="text-[color:var(--muted)]">
-          Store general details and treatment history linked to your account.
+        <p className="text-sm text-[color:var(--muted)] md:text-base">
+          Basic details, pain descriptions, and treatment history for your account.
         </p>
       </div>
 

@@ -40,8 +40,21 @@ type InlineTaxonomyPickerProps = {
   exclusiveOptionIds?: string[];
 };
 
-function sortOptions(options: TaxonomyOption[]) {
+function sortOptions(options: TaxonomyOption[], priorityIds: string[] = []) {
+  const priorityIndex = new Map(priorityIds.map((id, index) => [id, index]));
+
   return [...options].sort((left, right) => {
+    const leftPriority = priorityIndex.has(left.id)
+      ? priorityIndex.get(left.id)!
+      : Number.POSITIVE_INFINITY;
+    const rightPriority = priorityIndex.has(right.id)
+      ? priorityIndex.get(right.id)!
+      : Number.POSITIVE_INFINITY;
+
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+
     if (left.user_id === null && right.user_id !== null) {
       return -1;
     }
@@ -71,14 +84,13 @@ export function InlineTaxonomyPicker({
   exclusiveOptionId,
   exclusiveOptionIds,
 }: InlineTaxonomyPickerProps) {
-  const [options, setOptions] = useState(() => sortOptions(initialOptions));
+  const exclusiveIds = exclusiveOptionIds ?? (exclusiveOptionId ? [exclusiveOptionId] : []);
+  const [options, setOptions] = useState(() => sortOptions(initialOptions, exclusiveIds));
   const [draftLabel, setDraftLabel] = useState("");
   const [message, setMessage] = useState<TaxonomyActionState>({});
   const [isPending, startTransition] = useTransition();
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-
-  const exclusiveIds = exclusiveOptionIds ?? (exclusiveOptionId ? [exclusiveOptionId] : []);
 
   function toggleOption(id: string) {
     if (exclusiveIds.includes(id)) {
@@ -103,7 +115,7 @@ export function InlineTaxonomyPicker({
         ? current.map((entry) => (entry.id === option.id ? option : entry))
         : [...current, option];
 
-      return sortOptions(next);
+      return sortOptions(next, exclusiveIds);
     });
   }
 

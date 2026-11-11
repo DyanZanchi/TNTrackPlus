@@ -5,7 +5,7 @@ import type { MedicationCatalogItem } from "@/lib/medications/catalog";
 import type { MedicationFollowUp } from "@/lib/validation/medication-inventory";
 import { STOP_REASON_LABELS } from "@/lib/medications/labels";
 import { STOP_REASONS } from "@/lib/medications/catalog";
-import { hintClass, inputClass, selectionTileClass } from "@/lib/design/ui-classes";
+import { followUpIndentClass, hintClass, inputClass, selectionTileClass } from "@/lib/design/ui-classes";
 import { cn } from "@/lib/utils";
 
 const tileClass = cn(
@@ -143,7 +143,7 @@ export function InjectableFollowUp({
     item.followUp === "botox" ? "Where do or did you go for the injections?" : "Where do or did you go for the infusions?";
 
   return (
-    <div className="space-y-3 pl-1 sm:pl-4">
+    <div className={followUpIndentClass}>
       {item.followUp === "cgrp" ? (
         <>
           <Choices

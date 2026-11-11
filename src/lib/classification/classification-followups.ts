@@ -92,7 +92,7 @@ export const NEUROPATHIC_CAUSE_FOLLOWUPS: ClassificationFollowUp[] = [
   {
     key: "neuropathic_after_injury",
     sourceQuestion: "Q5A",
-    prompt: "an accident or injury?",
+    prompt: "An accident or injury?",
     asksDetail: false,
     reviewerCodes: [
       {
@@ -112,7 +112,7 @@ export const NEUROPATHIC_CAUSE_FOLLOWUPS: ClassificationFollowUp[] = [
   {
     key: "neuropathic_after_dental",
     sourceQuestion: "Q5B",
-    prompt: "a procedure such as a root canal, extraction, or placement of dental implants?",
+    prompt: "A procedure such as a root canal, extraction, or placement of dental implants?",
     asksDetail: false,
     reviewerCodes: [
       {
@@ -133,7 +133,7 @@ export const NEUROPATHIC_CAUSE_FOLLOWUPS: ClassificationFollowUp[] = [
     key: "neuropathic_after_pain_procedure",
     sourceQuestion: "Q5C",
     prompt:
-      "a procedure meant to eliminate facial pain, such as surgery, rhizotomy, balloon compression, gamma or cyber knife treatments, or radiofrequency ablation?",
+      "A procedure meant to eliminate facial pain, such as surgery, rhizotomy, balloon compression, gamma or cyber knife treatments, or radiofrequency ablation?",
     asksDetail: false,
     reviewerCodes: [
       {

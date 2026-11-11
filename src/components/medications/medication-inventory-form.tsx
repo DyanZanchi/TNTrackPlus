@@ -53,6 +53,7 @@ import {
   alertInfoClass,
   btnSecondaryClass,
   cardClass,
+  followUpIndentClass,
   hintClass,
   inputClass,
   selectionTileClass,
@@ -89,12 +90,12 @@ function SectionDropdown({
 }) {
   return (
     <details className={cn(cardClass, "group overflow-hidden")}>
-      <summary className="flex cursor-pointer list-none items-center gap-3 bg-white p-4 transition-colors marker:hidden hover:bg-[color:var(--accent)] sm:p-5 group-open:bg-[color:var(--accent)] [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center gap-3 bg-white p-4 transition-colors marker:hidden hover:bg-[color:var(--accent)]/60 sm:p-5 group-open:border-b group-open:border-[color:var(--border)] group-open:bg-[color:var(--accent)] [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-lg font-bold tracking-tight">{title}</span>
+          <span className="block font-display text-lg font-semibold tracking-tight">{title}</span>
           <span className={cn(hintClass, "mt-0.5 block")}>{detail}</span>
         </span>
-        <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[color:var(--primary)]">
+        <span className="shrink-0 rounded-full border border-[color:var(--border)] bg-white px-3 py-1 text-xs font-medium text-[color:var(--muted)] group-open:border-transparent group-open:bg-white/80 group-open:text-[color:var(--primary)]">
           {badge}
         </span>
         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[color:var(--primary)] px-3.5 py-2 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(123,82,171,0.28)]">
@@ -116,7 +117,7 @@ function SectionDropdown({
           </svg>
         </span>
       </summary>
-      <div className="space-y-4 border-t border-[color:var(--border)] bg-white px-4 py-4 sm:px-5">{children}</div>
+      <div className="space-y-4 bg-[color:var(--background)] px-4 py-4 sm:px-5">{children}</div>
     </details>
   );
 }
@@ -285,7 +286,7 @@ function MedicationRow({
         </div>
       </div>
       {status === "taking_now" ? (
-        <div className="space-y-3 pl-1 sm:pl-4">
+        <div className={followUpIndentClass}>
           <RadioChoices
             name={`med_${item.key}_times`}
             legend="How many times per day do you take it?"
@@ -349,7 +350,7 @@ function MedicationRow({
         </div>
       ) : null}
       {status === "stopped" ? (
-        <fieldset className="space-y-2 pl-1 sm:pl-4">
+        <fieldset className={cn(followUpIndentClass, "space-y-2")}>
           <legend className="text-sm font-semibold">
             Why did you stop? Select all that apply.
           </legend>
@@ -376,7 +377,7 @@ function MedicationRow({
         </fieldset>
       ) : null}
       {status === "used_past_week" && item.context === "otc" ? (
-        <div className="space-y-3 pl-1 sm:pl-4">
+        <div className={followUpIndentClass}>
           <RadioChoices
             name={`med_${item.key}_frequency`}
             legend="How often did you use it in the past week?"
@@ -444,7 +445,7 @@ function MedicationRow({
           name={`med_${item.key}_other`}
           defaultValue={saved?.otherText ?? ""}
           placeholder="If anything else, please explain"
-          className={cn(inputClass, "ml-1 sm:ml-4")}
+          className={cn(inputClass, followUpIndentClass)}
         />
       ) : null}
     </div>

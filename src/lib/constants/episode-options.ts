@@ -189,8 +189,8 @@ export function formatPainTypeLabels(labels: string[]) {
 }
 
 export const PAIN_PATTERN_LABELS: Record<(typeof PAIN_PATTERN_OPTIONS)[number], string> = {
-  continuous: "Continuous",
-  episodic_pulsing: "Episodic",
+  continuous: "Continuously",
+  episodic_pulsing: "In short bursts",
 };
 
 
@@ -205,16 +205,16 @@ export function formatFaceAreaLabels(faceAreas: Array<keyof typeof EPISODE_FACE_
 export const NO_CLEAR_TRIGGER_OPTION_ID = "11111111-1111-4111-8111-000000000008";
 export const NOT_SURE_TRIGGER_OPTION_ID = "11111111-1111-4111-8111-000000000009";
 export const EXCLUSIVE_TRIGGER_OPTION_IDS = [
-  NO_CLEAR_TRIGGER_OPTION_ID,
   NOT_SURE_TRIGGER_OPTION_ID,
+  NO_CLEAR_TRIGGER_OPTION_ID,
 ] as const;
 
-export const DURATION_STATUS_OPTIONS = ["known", "unknown", "ongoing"] as const;
+export const DURATION_STATUS_OPTIONS = ["unknown", "ongoing", "known"] as const;
 
 export const DURATION_STATUS_LABELS: Record<(typeof DURATION_STATUS_OPTIONS)[number], string> = {
-  known: "I know how long it lasted",
-  unknown: "I don't know",
+  unknown: "I don't know how long it lasted",
   ongoing: "It is still going on",
+  known: "I know how long it lasted",
 };
 
 export function isDurationStatusOption(

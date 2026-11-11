@@ -1,5 +1,5 @@
 import { RANGE_OPTIONS } from "@/lib/constants/episode-options";
-import { btnPrimaryClass, cardClass, inputClass, labelClass } from "@/lib/design/ui-classes";
+import { btnPrimaryClass, cardClass, inputClass, labelClass, selectClass } from "@/lib/design/ui-classes";
 import type { DashboardFilters } from "@/lib/types/episodes";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,7 @@ export function FilterBar({ filters }: FilterBarProps) {
     >
       <label className="space-y-2">
         <span className={labelClass}>Range</span>
-        <select name="range" defaultValue={filters.range} className={inputClass}>
+        <select name="range" defaultValue={filters.range} className={selectClass}>
           {RANGE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
